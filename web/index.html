@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C++ 資料結構練習</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #6b7385; --border: #e2e5ea;
+    --accent: #2f6fde; --accent-soft: #e8f0fd; --ok: #1f9d55; --bad: #d64545; --warn: #c88a04;
+    --code-bg: #f1f3f6; --mono: "JetBrains Mono", "Cascadia Code", Consolas, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --panel: #1b1e25; --text: #e4e7ee; --muted: #8d95a8; --border: #2b303a;
+      --accent: #6b9cff; --accent-soft: #1f2a40; --ok: #4cc38a; --bad: #f07171; --warn: #e5b33d;
+      --code-bg: #232731;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 16px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .progress { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .app { flex: 1; display: flex; min-height: 0; }
+  nav { width: 270px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 8px 0 24px; }
+  nav h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 16px 6px; }
+  nav a { display: flex; align-items: center; gap: 8px; padding: 5px 16px; color: var(--text); text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+  nav a:hover { background: var(--accent-soft); }
+  nav a.active { background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+  nav .mark { width: 16px; text-align: center; font-size: 12px; flex-shrink: 0; }
+  nav .diff { margin-left: auto; color: var(--warn); font-size: 11px; letter-spacing: -1px; }
+  main { flex: 1; min-width: 0; overflow: hidden; display: flex; }
+  .doc { flex: 1; overflow-y: auto; padding: 24px 32px 60px; }
+  .doc.narrow { max-width: 900px; margin: 0 auto; }
+  .split { display: flex; flex: 1; min-width: 0; }
+  .split > .left { width: 45%; min-width: 320px; overflow-y: auto; padding: 20px 26px 60px; border-right: 1px solid var(--border); }
+  .split > .right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .md h1 { font-size: 22px; margin-top: 0; } .md h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .md h3 { font-size: 16px; }
+  .detail code, .md code { font-family: var(--mono); font-size: 13px; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  .md pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; }
+  .md pre code { background: none; padding: 0; }
+  .md table { border-collapse: collapse; margin: 10px 0; } .md td, .md th { border: 1px solid var(--border); padding: 5px 10px; }
+  .md blockquote { margin: 0; padding: 4px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; color: var(--muted); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: wait; }
+  label.chk { font-size: 13px; color: var(--muted); display: flex; gap: 4px; align-items: center; }
+  .editor { flex: 1; min-height: 200px; position: relative; }
+  .editor .CodeMirror, .editor textarea { position: absolute; inset: 0; height: 100%; width: 100%; font-family: var(--mono); font-size: 14px; }
+  .editor textarea { border: 0; padding: 10px; background: var(--panel); color: var(--text); resize: none; tab-size: 4; }
+  .bottom { height: 38%; min-height: 160px; display: flex; flex-direction: column; border-top: 1px solid var(--border); background: var(--panel); }
+  .tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--border); }
+  .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 7px 12px; color: var(--muted); }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+  .pane { flex: 1; overflow: auto; padding: 10px 14px; display: none; }
+  .pane.active { display: block; }
+  .pane textarea { width: 100%; height: 100%; min-height: 80px; font-family: var(--mono); font-size: 13px; background: var(--code-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; resize: vertical; }
+  .runio { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 100%; }
+  .runio > div { display: flex; flex-direction: column; min-height: 0; }
+  .runio small { color: var(--muted); }
+  pre.out { margin: 0; flex: 1; font-family: var(--mono); font-size: 13px; background: var(--code-bg); border-radius: 6px; padding: 8px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .verdict { font-weight: 700; font-family: var(--mono); }
+  .v-AC { color: var(--ok); } .v-WA, .v-RE, .v-MLE { color: var(--bad); } .v-TLE, .v-CE { color: var(--warn); }
+  table.res { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.res td { padding: 3px 8px; border-bottom: 1px solid var(--border); font-family: var(--mono); }
+  table.res tr.fail { cursor: pointer; } table.res tr.fail:hover { background: var(--accent-soft); }
+  .summary { font-size: 16px; margin: 4px 0 10px; }
+  .detail { margin-bottom: 14px; } .detail:empty { display: none; }
+  .detail h4 { margin: 10px 0 4px; font-size: 13px; color: var(--muted); }
+  .testlist details { border: 1px solid var(--border); border-radius: 6px; margin: 6px 0; padding: 4px 10px; }
+  .testlist summary { cursor: pointer; font-family: var(--mono); font-size: 13px; }
+  .testlist .io { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+  .testlist pre { margin: 0; max-height: 260px; }
+  .muted { color: var(--muted); }
+  .welcome { max-width: 760px; margin: 40px auto; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; }
+  .card:hover { border-color: var(--accent); }
+  .card b { display: block; margin-bottom: 4px; }
+  @media (max-width: 900px) {
+    nav { display: none; } .split { flex-direction: column; } .split > .left { width: auto; border-right: 0; max-height: 40vh; }
+    .runio { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧑‍🏫 C++ 資料結構練習平台</h1>
+  <span class="progress" id="progress"></span>
+</header>
+<div class="app">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+
+async function api(path, body) {
+  const opt = body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {};
+  const r = await fetch(path, opt);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// 沒有網路（CDN 載不到 marked）時用的簡易 Markdown 轉換
+function miniMd(md) {
+  const inline = t => esc(t)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/&lt;(https?:[^&]+)&gt;/g, '<a href="$1">$1</a>');
+  const lines = md.split("\n"), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith("```")) {
+      const buf = [];
+      while (++i < lines.length && !lines[i].startsWith("```")) buf.push(lines[i]);
+      out.push(`<pre><code>${esc(buf.join("\n"))}</code></pre>`);
+    } else if (/^#{1,6} /.test(l)) {
+      const n = l.indexOf(" ");
+      out.push(`<h${n}>${inline(l.slice(n + 1))}</h${n}>`);
+    } else if (l.startsWith("|")) {
+      const rows = [];
+      for (; i < lines.length && lines[i].startsWith("|"); i++) rows.push(lines[i]);
+      i--;
+      const cells = r => r.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      out.push("<table>" + rows.filter(r => !/^\|[\s|:-]+\|$/.test(r)).map((r, k) =>
+        "<tr>" + cells(r).map(c => k ? `<td>${inline(c)}</td>` : `<th>${inline(c)}</th>`).join("") + "</tr>").join("") + "</table>");
+    } else if (/^\s*([-*]|\d+\.) /.test(l)) {
+      const ordered = /^\s*\d+\./.test(l), items = [];
+      for (; i < lines.length && /^\s*([-*]|\d+\.) /.test(lines[i]); i++) items.push(lines[i].replace(/^\s*([-*]|\d+\.) /, ""));
+      i--;
+      const tag = ordered ? "ol" : "ul";
+      out.push(`<${tag}>${items.map(t => `<li>${inline(t)}</li>`).join("")}</${tag}>`);
+    } else if (l.startsWith(">")) {
+      out.push(`<blockquote><p>${inline(l.replace(/^>\s?/, ""))}</p></blockquote>`);
+    } else if (l.trim()) {
+      out.push(`<p>${inline(l)}</p>`);
+    }
+  }
+  return out.join("\n");
+}
+
+function renderMd(md) {
+  if (!window.marked) return miniMd(md);
+  const html = marked.parse(md);
+  setTimeout(() => window.hljs && document.querySelectorAll(".md pre code").forEach(b => hljs.highlightElement(b)), 0);
+  return html;
+}
+
+let problems = [], lessons = [], current = null, editor = null, saveTimer = null;
+
+async function loadNav() {
+  [problems, lessons] = await Promise.all([api("/api/problems"), api("/api/lessons")]);
+  const solved = problems.filter(p => p.solved).length;
+  $("#progress").textContent = `已通過 ${solved} / ${problems.length} 題`;
+  const mark = p => p.solved ? '<span class="mark v-AC">✔</span>' : p.verdict ? '<span class="mark v-WA">✘</span>'
+                  : p.started ? '<span class="mark muted">…</span>' : '<span class="mark muted">·</span>';
+  $("#nav").innerHTML =
+    `<h2>📘 教學</h2>` + lessons.map(l => `<a href="#lesson/${l.name}" data-k="lesson/${l.name}"><span class="mark">📄</span>${esc(l.title)}</a>`).join("") +
+    `<h2>🧩 題目</h2>` + problems.map(p => `<a href="#problem/${p.id}" data-k="problem/${p.id}">${mark(p)}<span>${esc(p.id.slice(0, 2))}. ${esc(p.title)}</span><span class="diff">${esc(p.difficulty)}</span></a>`).join("");
+  highlightNav();
+}
+function highlightNav() {
+  const k = location.hash.slice(1);
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.k === k));
+}
+
+function showWelcome() {
+  $("#main").innerHTML = `<div class="doc"><div class="welcome md">
+    <h1>歡迎！</h1>
+    <p>左邊是 <b>教學</b> 和 <b>題目</b>。建議的路線：先讀一篇教學，再做對應的題目。</p>
+    <ul>
+      <li>在右邊的編輯器寫 C++，程式會自動存到 <code>workspace/&lt;題目&gt;.cpp</code>。</li>
+      <li><b>執行</b>：用你自己輸入的資料跑一次（像在本機執行）。</li>
+      <li><b>提交評測</b>：跑全部測資（含 corner case），顯示 AC / WA / TLE / RE。</li>
+      <li>勾選 <b>debug</b> 會用 AddressSanitizer 編譯，能抓到越界、空指標等錯誤。</li>
+      <li><b>測資</b> 分頁可以看到每一筆測資，也可以換 seed 重新產生隨機測資。</li>
+    </ul>
+    <div class="cards">${lessons.slice(0, 6).map(l => `<div class="card" onclick="location.hash='lesson/${l.name}'"><b>${esc(l.title)}</b><span class="muted">${esc(l.name)}</span></div>`).join("")}</div>
+  </div></div>`;
+}
+
+async function showLesson(name) {
+  const {markdown} = await api("/api/lesson?name=" + encodeURIComponent(name));
+  $("#main").innerHTML = `<div class="doc"><div class="narrow md">${renderMd(markdown)}</div></div>`;
+  // 教學中的題目連結 problems/xx/problem.md → 直接跳到題目
+  document.querySelectorAll(".md code").forEach(c => {
+    const m = c.textContent.match(/^(?:problems\/)?(\d\d_[a-z0-9_]+)(?:\/problem\.md)?$/);
+    if (m && problems.some(p => p.id === m[1])) {
+      c.style.cursor = "pointer"; c.style.textDecoration = "underline";
+      c.onclick = () => location.hash = "problem/" + m[1];
+    }
+  });
+}
+
+function getCode() { return editor ? (editor.getValue ? editor.getValue() : editor.value) : ""; }
+function setCode(c) { if (editor.setValue) editor.setValue(c); else editor.value = c; }
+
+async function showProblem(id) {
+  const p = await api("/api/problem?id=" + encodeURIComponent(id));
+  current = p.id;
+  $("#main").innerHTML = `
+    <div class="split">
+      <div class="left md">${renderMd(p.markdown)}</div>
+      <div class="right">
+        <div class="toolbar">
+          <button class="primary" id="btnSubmit">▶ 提交評測</button>
+          <button id="btnRun">執行（自訂輸入）</button>
+          <label class="chk"><input type="checkbox" id="debug"> debug (sanitizer)</label>
+          <span style="flex:1"></span>
+          <span class="muted" id="saved" style="font-size:12px"></span>
+          <button id="btnReset" title="把程式碼換回題目樣板">重設樣板</button>
+        </div>
+        <div class="editor" id="editorBox"></div>
+        <div class="bottom">
+          <div class="tabs">
+            <button data-p="result" class="active">評測結果</button>
+            <button data-p="run">自訂輸入</button>
+            <button data-p="tests">測資</button>
+          </div>
+          <div class="pane active" id="pane-result"><span class="muted">按「提交評測」跑全部測資。</span></div>
+          <div class="pane" id="pane-run">
+            <div class="runio">
+              <div><small>輸入 (stdin)</small><textarea id="runIn" spellcheck="false"></textarea></div>
+              <div><small>輸出 <span id="runStatus"></span></small><pre class="out" id="runOut"></pre></div>
+            </div>
+          </div>
+          <div class="pane" id="pane-tests"><span class="muted">載入中…</span></div>
+        </div>
+      </div>
+    </div>`;
+  const box = $("#editorBox");
+  if (window.CodeMirror) {
+    editor = CodeMirror(box, {value: p.code, mode: "text/x-c++src", lineNumbers: true, indentUnit: 4,
+      tabSize: 4, matchBrackets: true, autoCloseBrackets: true, theme: dark ? "material-darker" : "default",
+      extraKeys: {"Ctrl-Enter": submit, "Cmd-Enter": submit, "Ctrl-S": () => save(true), "Cmd-S": () => save(true)}});
+    editor.on("change", scheduleSave);
+  } else {
+    editor = document.createElement("textarea");
+    editor.value = p.code; editor.spellcheck = false; box.appendChild(editor);
+    editor.addEventListener("input", scheduleSave);
+    editor.addEventListener("keydown", e => {
+      if (e.key === "Tab") { e.preventDefault(); const s = editor.selectionStart; editor.setRangeText("    ", s, editor.selectionEnd, "end"); }
+    });
+  }
+  const sample = p.markdown.match(/## 範例\s*\n\s*輸入\s*\n```\n([\s\S]*?)```/);
+  $("#runIn").value = sample ? sample[1] : "";
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => tab(b.dataset.p));
+  $("#btnSubmit").onclick = submit;
+  $("#btnRun").onclick = run;
+  $("#btnReset").onclick = async () => {
+    if (!confirm("確定要把程式碼換回樣板嗎？目前的程式會被覆蓋。")) return;
+    setCode((await api("/api/reset", {id: current})).code);
+  };
+  loadTests();
+}
+
+function tab(name) {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.p === name));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.id === "pane-" + name));
+}
+
+function scheduleSave() {
+  $("#saved").textContent = "未儲存…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => save(false), 800);
+}
+async function save(manual) {
+  clearTimeout(saveTimer); saveTimer = null;
+  await api("/api/save", {id: current, code: getCode()});
+  $("#saved").textContent = `已儲存到 workspace/${current}.cpp`;
+}
+
+function busy(on) { ["#btnSubmit", "#btnRun"].forEach(s => $(s).disabled = on); }
+
+async function run() {
+  tab("run"); busy(true);
+  $("#runStatus").innerHTML = "編譯執行中…"; $("#runOut").textContent = "";
+  try {
+    save(false);
+    const r = await api("/api/run", {code: getCode(), input: $("#runIn").value, debug: $("#debug").checked});
+    if (r.status === "CE") {
+      $("#runStatus").innerHTML = `<span class="verdict v-CE">編譯錯誤</span>`;
+      $("#runOut").textContent = r.compile_error;
+    } else {
+      const st = r.status === "OK" ? `<span class="verdict v-AC">完成</span>` : `<span class="verdict v-${r.status}">${r.status}</span>`;
+      $("#runStatus").innerHTML = `${st} <span class="muted">${r.time.toFixed(3)}s ${esc(r.detail || "")}</span>`;
+      $("#runOut").textContent = r.stdout + (r.stderr ? "\n──── stderr ────\n" + r.stderr : "");
+    }
+  } catch (e) { $("#runStatus").textContent = "錯誤：" + e.message; }
+  busy(false);
+}
+
+async function submit() {
+  tab("result"); busy(true);
+  const pane = $("#pane-result");
+  pane.innerHTML = `<span class="muted">編譯並評測中…</span>`;
+  try {
+    const r = await api("/api/submit", {id: current, code: getCode(), debug: $("#debug").checked});
+    $("#saved").textContent = `已儲存到 workspace/${current}.cpp`;
+    if (r.verdict === "CE") {
+      pane.innerHTML = `<div class="summary verdict v-CE">編譯錯誤 (CE)</div><pre class="out">${esc(r.compile_error)}</pre>`;
+    } else {
+      const msg = r.verdict === "AC" ? `全部通過！AC ${r.passed}/${r.total} 🎉` : `${r.verdict}：通過 ${r.passed}/${r.total}`;
+      pane.innerHTML = `<div class="summary verdict v-${r.verdict}">${msg}</div>
+        <div class="detail" id="detail"></div>
+        <table class="res">${r.results.map((t, i) => `<tr class="${t.verdict !== "AC" ? "fail" : ""}" data-i="${i}">
+          <td>${esc(t.name)}</td><td class="verdict v-${t.verdict}">${t.verdict}</td><td class="muted">${t.time}s</td></tr>`).join("")}</table>`;
+      const fails = r.results.filter(t => t.verdict !== "AC");
+      pane.querySelectorAll("tr.fail").forEach(tr => tr.onclick = () => showDetail(r.results[tr.dataset.i]));
+      if (fails.length) showDetail(fails[0]);
+    }
+    loadNav();
+  } catch (e) { pane.textContent = "錯誤：" + e.message; }
+  busy(false);
+}
+
+function showDetail(t) {
+  let h = `<h4>${esc(t.name)} — <span class="verdict v-${t.verdict}">${t.verdict}</span></h4>`;
+  if (t.verdict === "WA") {
+    const d = t.detail;
+    h += `<div>第 <b>${d.line}</b> 行不同：預期 <code>${esc(d.expected ?? "(沒有這一行)")}</code>，你的 <code>${esc(d.got ?? "(沒有這一行)")}</code>
+          <span class="muted">（預期 ${d.expected_lines} 行，你輸出 ${d.got_lines} 行）</span></div>`;
+  } else {
+    h += `<div>${esc(t.detail || "")}</div>`;
+  }
+  h += `<h4>輸入</h4><pre class="out">${esc(t.input)}</pre>`;
+  if (t.verdict === "WA") h += `<div class="runio" style="height:auto;margin-top:8px"><div><h4>預期輸出</h4><pre class="out">${esc(t.expected)}</pre></div><div><h4>你的輸出</h4><pre class="out">${esc(t.got)}</pre></div></div>`;
+  if (t.stderr) h += `<h4>stderr</h4><pre class="out">${esc(t.stderr)}</pre>`;
+  if (t.name.includes("corner")) h += `<p class="muted">💡 corner case 的名稱就是提示：想想看這個邊界情況你有沒有處理到。</p>`;
+  $("#detail").innerHTML = h;
+}
+
+async function loadTests() {
+  const pane = $("#pane-tests");
+  const tests = await api("/api/tests?id=" + current);
+  pane.innerHTML = `<div class="toolbar" style="border:0;padding:0 0 8px">
+      <span class="muted">共 ${tests.length} 筆（corner case + 隨機）。</span>
+      <input id="seed" placeholder="seed（空白=預設）" style="width:140px;font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text)">
+      <button id="btnGen">重新產生測資</button></div>
+    <div class="testlist">${tests.map((t, i) => `<details><summary>${esc(t.name)} <span class="muted">(${t.size.toLocaleString()} bytes)</span></summary>
+      <div class="io"><div><small class="muted">輸入</small><pre class="out">${esc(t.input)}</pre></div>
+      <div><small class="muted">預期輸出</small><pre class="out">${esc(t.output)}</pre></div></div>
+      ${t.input_full !== null ? `<button data-i="${i}" class="useit">用這筆輸入執行</button>` : ""}</details>`).join("")}</div>`;
+  pane.querySelectorAll(".useit").forEach(b => b.onclick = () => { $("#runIn").value = tests[b.dataset.i].input_full; run(); });
+  $("#btnGen").onclick = async () => {
+    $("#btnGen").disabled = true;
+    try { await api("/api/gen", {id: current, seed: $("#seed").value.trim()}); await loadTests(); }
+    catch (e) { alert(e.message); $("#btnGen").disabled = false; }
+  };
+}
+
+async function route() {
+  if (saveTimer && current && editor) await save(false);  // 切換頁面前先存檔
+  highlightNav();
+  const h = decodeURIComponent(location.hash.slice(1));
+  try {
+    if (h.startsWith("lesson/")) await showLesson(h.slice(7));
+    else if (h.startsWith("problem/")) await showProblem(h.slice(8));
+    else showWelcome();
+  } catch (e) { $("#main").innerHTML = `<div class="doc">錯誤：${esc(e.message)}</div>`; }
+}
+
+window.addEventListener("hashchange", route);
+loadNav().then(route);
+</script>
+</body>
+</html>

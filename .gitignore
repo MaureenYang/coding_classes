@@ -1,0 +1,9 @@
+# 編譯產物與自動產生的測資
+.build/
+problems/*/tests/
+__pycache__/
+*.pyc
+
+# 個人進度
+.progress.json
+workspace/*.failed.in
