@@ -69,6 +69,7 @@ python3 judge.py run my.cpp input.txt # 單純編譯執行任何 C++ 檔案
 | 教學 | 練習題 |
 |---|---|
 | `01_cpp_basics_and_complexity.md` | （先讀，打基礎） |
+| `01b_complexity_exam.md` | 時間複雜度考題（40 題，附解答） |
 | `02_recursion.md` | `01_hanoi` → `02_hanoi_kth` → `17_n_queens` |
 | `03_dynamic_array.md` | `03_my_vector` |
 | `04_linked_list.md` | `04_linked_list` |
