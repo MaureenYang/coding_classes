@@ -1,13 +1,16 @@
 # C++ 資料結構家教 🧑‍🏫
 
-一個在自己電腦上跑的 **C++ 資料結構教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台。
+一個在自己電腦上跑的 **C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成兩條路線：
 
-- 📘 **教學**：`lessons/` 共 12 篇，從複雜度、遞迴（河內塔）到雜湊表、堆積、BST、圖、併查集，另有時間複雜度考題 40 題
-- 🧩 **練習題**：`problems/` 共 17 題，自己實作常見資料結構 + 經典題型
+| 路線 | 內容 |
+|---|---|
+| 📚 **資料結構** | `lessons/` 12 篇教學 + 複雜度考題、`problems/` 17 題（河內塔、vector、鏈結串列、stack/queue、雜湊表、heap、BST、圖、併查集……） |
+| 🔧 **C++ 深入** | `cpp/lessons/` 15 篇教學、`cpp/problems/` 14 題（運算式、敘述、函式、指標、RAII、類別、繼承與多型、ADT、模板、STL、字串 IO、例外、編譯模型、現代 C++） |
+
 - 🧪 **測資產生器**：每題都有 corner case + 小 / 中 / 大隨機測資，可以換 seed 重新產生
 - ⚖️ **評測**：編譯你的 C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
-- 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出最小反例）
-- 🌐 **網頁版**：瀏覽器裡看教學、寫 code、按一下就評測
+- 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出反例）
+- 🌐 **網頁版**：瀏覽器裡看教學、寫 code、按一下就評測；上方切換兩條路線
 
 只需要 `g++`（C++17）和 `python3`，**不用安裝任何套件**。
 
@@ -25,11 +28,14 @@ python3 judge.py test hanoi        # 評測
 python3 judge.py stress hanoi      # 對拍找反例
 python3 judge.py test hanoi --debug
 python3 judge.py run my.cpp in.txt # 執行任何 C++ 程式
+python3 judge.py test c7           # C++ 深入路線第 7 題（c07_fraction）
 ```
 
 詳細說明請看 [`lessons/00_how_to_use.md`](lessons/00_how_to_use.md)。
 
 ## 題目列表
+
+### 📚 資料結構
 
 | # | 題目 | 主題 | 難度 |
 |---|---|---|---|
@@ -51,12 +57,33 @@ python3 judge.py run my.cpp in.txt # 執行任何 C++ 程式
 | 16 | 拓撲排序 | Graph / DAG | ★★★ |
 | 17 | N 皇后 | 回溯法 | ★★☆ |
 
+### 🔧 C++ 深入
+
+| # | 題目 | 主題 | 難度 |
+|---|---|---|---|
+| C01 | 運算式求值 | 優先順序、結合性、整數除法 | ★★☆ |
+| C02 | 位元運算 | 位元運算子、移位的未定義行為 | ★★☆ |
+| C03 | 日期計算 | 控制流程、switch 穿透 | ★★☆ |
+| C04 | 多條件排序 | lambda、嚴格弱序 | ★★☆ |
+| C05 | 用指標做矩陣 | 指標的指標、動態配置 | ★★☆ |
+| C06 | 自己做一個字串類別 | RAII、五法則、自我指定 | ★★★ |
+| C07 | 分數類別 | 運算子多載、不變量 | ★★☆ |
+| C08 | 圖形與多型 | 繼承、虛擬函式、抽象類別 | ★★☆ |
+| C09 | 銀行帳戶系統 | ADT、介面、原子操作 | ★★★ |
+| C10 | 泛型堆疊 | 類別模板、函式模板多載 | ★★☆ |
+| C11 | 單字頻率統計 | STL 容器與演算法 | ★★☆ |
+| C12 | 成績單解析 | getline、stringstream、格式化 | ★★☆ |
+| C13 | 安全的計算機 | 例外、強例外保證、溢位檢查 | ★★★ |
+| C14 | 智慧指標串列 | unique_ptr、解構的遞迴陷阱 | ★★★ |
+
 ## 目錄結構
 
 ```
 judge.py                 評測工具（CLI + 網頁伺服器入口）
 web/                     網頁版（server.py + index.html）
-lessons/                 教學
+lessons/                 資料結構教學
+cpp/lessons/             C++ 深入教學
+cpp/problems/            C++ 深入題目（結構同 problems/）
 problems/<題目>/
     problem.md           題目敘述
     template.cpp         作答樣板

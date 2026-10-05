@@ -7,3 +7,4 @@ __pycache__/
 # 個人進度
 .progress.json
 workspace/*.failed.in
+cpp/problems/*/tests/

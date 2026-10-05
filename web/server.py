@@ -14,27 +14,37 @@ import judge
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def lesson_list():
+def track_of(q):
+    t = q.get("track") or "ds"
+    if t not in judge.TRACKS:
+        raise ValueError("bad track")
+    return t
+
+
+def lesson_list(track="ds"):
     out = []
-    for name in sorted(os.listdir(judge.LESSONS_DIR)):
+    d = judge.TRACKS[track]["lessons"]
+    if not os.path.isdir(d):
+        return out
+    for name in sorted(os.listdir(d)):
         if not name.endswith(".md"):
             continue
-        with open(os.path.join(judge.LESSONS_DIR, name), encoding="utf-8") as f:
+        with open(os.path.join(d, name), encoding="utf-8") as f:
             first = f.readline().lstrip("# ").strip()
         out.append({"name": name, "title": first})
     return out
 
 
-def safe_lesson(name):
+def safe_lesson(name, track="ds"):
     if not re.fullmatch(r"[\w\-]+\.md", name or ""):
         raise ValueError("bad lesson name")
-    return os.path.join(judge.LESSONS_DIR, name)
+    return os.path.join(judge.TRACKS[track]["lessons"], name)
 
 
-def problem_list():
+def problem_list(track="ds"):
     prog = judge.load_progress()
     out = []
-    for pid in judge.list_problem_ids():
+    for pid in judge.list_problem_ids(track):
         meta = judge.load_meta(pid)
         p = prog.get(pid, {})
         out.append({"id": pid, "title": meta.TITLE, "topic": meta.TOPIC,
@@ -53,7 +63,8 @@ def problem_detail(pid):
     ws = judge.workspace_file(pid)
     code = read(ws) if os.path.exists(ws) else read(judge.problem_path(pid, "template.cpp"))
     meta = judge.load_meta(pid)
-    return {"id": pid, "markdown": read(judge.problem_path(pid, "problem.md")), "code": code,
+    return {"id": pid, "track": judge.problem_track(pid),
+            "markdown": read(judge.problem_path(pid, "problem.md")), "code": code,
             "time_limit": getattr(meta, "TIME_LIMIT", 2.0)}
 
 
@@ -126,15 +137,15 @@ class Handler(BaseHTTPRequestHandler):
             if url.path in ("/", "/index.html"):
                 return self.send_file(os.path.join(WEB_DIR, "index.html"), "text/html; charset=utf-8")
             if url.path == "/api/problems":
-                return self.send_json(problem_list())
+                return self.send_json(problem_list(track_of(q)))
             if url.path == "/api/problem":
                 return self.send_json(problem_detail(judge.resolve_problem(q["id"])))
             if url.path == "/api/tests":
                 return self.send_json(tests_detail(judge.resolve_problem(q["id"])))
             if url.path == "/api/lessons":
-                return self.send_json(lesson_list())
+                return self.send_json(lesson_list(track_of(q)))
             if url.path == "/api/lesson":
-                return self.send_json({"markdown": read(safe_lesson(q.get("name")))})
+                return self.send_json({"markdown": read(safe_lesson(q.get("name"), track_of(q)))})
             self.send_json({"error": "not found"}, 404)
         except (SystemExit, KeyError, ValueError, OSError) as e:
             self.send_json({"error": str(e)}, 400)

@@ -30,6 +30,13 @@ import time
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PROBLEMS_DIR = os.path.join(ROOT, "problems")
 LESSONS_DIR = os.path.join(ROOT, "lessons")
+
+# 兩條學習路線：資料結構 (ds) 與 C++ 深入 (cpp)，各自有教學與題目資料夾
+TRACKS = {
+    "ds": {"name": "資料結構", "lessons": LESSONS_DIR, "problems": PROBLEMS_DIR},
+    "cpp": {"name": "C++ 深入", "lessons": os.path.join(ROOT, "cpp", "lessons"),
+            "problems": os.path.join(ROOT, "cpp", "problems")},
+}
 WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")
 PROGRESS_FILE = os.path.join(ROOT, ".progress.json")
@@ -63,20 +70,35 @@ VERDICT_COLOR = {"AC": green, "WA": red, "TLE": yellow, "RE": red, "MLE": red, "
 
 # ---------------------------------------------------------------- problems --
 
-def list_problem_ids():
-    if not os.path.isdir(PROBLEMS_DIR):
-        return []
-    return sorted(d for d in os.listdir(PROBLEMS_DIR)
-                  if os.path.isfile(os.path.join(PROBLEMS_DIR, d, "gen.py")))
+def list_problem_ids(track=None):
+    ids = []
+    for key, t in TRACKS.items():
+        if track and key != track:
+            continue
+        d = t["problems"]
+        if os.path.isdir(d):
+            ids += sorted(x for x in os.listdir(d) if os.path.isfile(os.path.join(d, x, "gen.py")))
+    return ids
+
+
+def problem_track(pid):
+    for key, t in TRACKS.items():
+        if os.path.isfile(os.path.join(t["problems"], pid, "gen.py")):
+            return key
+    return None
 
 
 def resolve_problem(name):
     ids = list_problem_ids()
     if name in ids:
         return name
-    if name.isdigit():
+    m = re.fullmatch(r"([cC]?)(\d+)", name)
+    if m:  # 3 → 03_my_vector；c7 → c07_fraction
+        prefix = m.group(1).lower()
         for pid in ids:
-            if pid.split("_", 1)[0].lstrip("0") == name.lstrip("0"):
+            head = pid.split("_", 1)[0]
+            if head[:len(prefix)] == prefix and head[len(prefix):].isdigit() \
+                    and head[len(prefix):].lstrip("0") == m.group(2).lstrip("0"):
                 return pid
     matches = [pid for pid in ids if pid.split("_", 1)[-1] == name] or \
               [pid for pid in ids if name in pid]
@@ -88,7 +110,7 @@ def resolve_problem(name):
 
 
 def load_meta(pid):
-    path = os.path.join(PROBLEMS_DIR, pid, "gen.py")
+    path = problem_path(pid, "gen.py")
     spec = importlib.util.spec_from_file_location(f"gen_{pid}", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -96,7 +118,8 @@ def load_meta(pid):
 
 
 def problem_path(pid, *parts):
-    return os.path.join(PROBLEMS_DIR, pid, *parts)
+    track = problem_track(pid) or "ds"
+    return os.path.join(TRACKS[track]["problems"], pid, *parts)
 
 
 def workspace_file(pid):
@@ -382,21 +405,27 @@ def print_failure(r, debug=False):
 
 def cmd_list(args):
     prog = load_progress()
-    print(f"{'題目':<26}{'主題':<16}{'難度':<8}狀態")
-    print("-" * 64)
-    for pid in list_problem_ids():
-        meta = load_meta(pid)
-        p = prog.get(pid)
-        if p and p.get("solved"):
-            status = green("✔ 已通過")
-        elif p:
-            status = red(f"✘ {p['verdict']} ({p['passed']}/{p['total']})")
-        elif os.path.exists(workspace_file(pid)):
-            status = yellow("… 作答中")
-        else:
-            status = dim("未開始")
-        print(f"{pid:<26}{meta.TOPIC:<14}{meta.DIFFICULTY:<6}{status}")
-    print(dim("\n教學在 lessons/ 資料夾，從 lessons/00_how_to_use.md 開始。"))
+    for key, t in TRACKS.items():
+        ids = list_problem_ids(key)
+        if not ids:
+            continue
+        print(cyan(f"\n【{t['name']}】"))
+        print(f"{'題目':<26}{'主題':<16}{'難度':<8}狀態")
+        print("-" * 64)
+        for pid in ids:
+            meta = load_meta(pid)
+            p = prog.get(pid)
+            if p and p.get("solved"):
+                status = green("✔ 已通過")
+            elif p:
+                status = red(f"✘ {p['verdict']} ({p['passed']}/{p['total']})")
+            elif os.path.exists(workspace_file(pid)):
+                status = yellow("… 作答中")
+            else:
+                status = dim("未開始")
+            print(f"{pid:<26}{meta.TOPIC:<14}{meta.DIFFICULTY:<6}{status}")
+    print(dim("\n教學在 lessons/（資料結構）與 cpp/lessons/（C++ 深入）。"))
+    print(dim("題目可用編號指定：3 → 03_my_vector，c7 → C++ 深入第 7 題。"))
 
 
 def cmd_show(args):
