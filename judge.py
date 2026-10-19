@@ -41,12 +41,24 @@ WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")
 PROGRESS_FILE = os.path.join(ROOT, ".progress.json")
 
+IS_WINDOWS = os.name == "nt"
+
 CXX = os.environ.get("CXX", "g++")
 BASE_FLAGS = ["-std=c++17", "-Wall", "-Wextra", "-Wno-unused-result", "-Wno-unused-parameter"]
 RELEASE_FLAGS = ["-O2"]
-DEBUG_FLAGS = ["-g", "-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
-               "-D_GLIBCXX_DEBUG"]
+if IS_WINDOWS:
+    # Windows 預設的堆疊只有 1 MB，遞迴深一點就當掉；調成 64 MB，接近 Linux 評測環境
+    BASE_FLAGS += ["-Wl,--stack,67108864"]
+    # MinGW 的 g++ 不支援 AddressSanitizer / UBSan，只保留 STL 的除錯檢查
+    DEBUG_FLAGS = ["-g", "-O1", "-D_GLIBCXX_DEBUG"]
+else:
+    DEBUG_FLAGS = ["-g", "-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                   "-D_GLIBCXX_DEBUG"]
+EXE_SUFFIX = ".exe" if IS_WINDOWS else ".out"
 MEMORY_LIMIT_MB = 512
+
+if IS_WINDOWS:
+    os.system("")  # 讓舊版 Windows 主控台也能顯示 ANSI 顏色
 
 # 預設隨機測資數量
 RANDOM_PLAN = [("small", 6), ("medium", 3), ("large", 2)]
@@ -161,14 +173,19 @@ def compile_cpp(src, debug=False):
         code = f.read()
     flags = BASE_FLAGS + (DEBUG_FLAGS if debug else RELEASE_FLAGS)
     key = hashlib.sha1(code + " ".join(flags).encode()).hexdigest()[:16]
-    exe = os.path.join(BUILD_DIR, f"{key}.out")
+    exe = os.path.join(BUILD_DIR, f"{key}{EXE_SUFFIX}")
     if os.path.exists(exe):
         return exe
-    proc = subprocess.run([CXX, *flags, src, "-o", exe + ".tmp"],
-                          capture_output=True, text=True)
+    tmp = os.path.join(BUILD_DIR, f"{key}.tmp{EXE_SUFFIX}")
+    try:
+        proc = subprocess.run([CXX, *flags, src, "-o", tmp],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        raise CompileError(f"找不到 C++ 編譯器 {CXX!r}。請先安裝 g++，並確認在終端機輸入 "
+                           f"`{CXX} --version` 能看到版本號。") from None
     if proc.returncode != 0:
         raise CompileError(proc.stderr)
-    os.replace(exe + ".tmp", exe)
+    os.replace(tmp, exe)
     if proc.stderr.strip():
         # 編譯警告也很重要，例如「沒有 return」、「比較 signed/unsigned」
         sys.stderr.write(yellow("[編譯警告]\n") + proc.stderr + "\n")
@@ -210,8 +227,9 @@ def run_exe(exe, input_text, time_limit=2.0, debug=False):
     """執行程式，回傳 dict(status, stdout, stderr, time)。status: OK / TLE / RE"""
     start = time.perf_counter()
     try:
+        extra = {} if IS_WINDOWS else {"preexec_fn": _limits(debug)}  # Windows 不支援 preexec_fn
         proc = subprocess.run([exe], input=input_text.encode(), capture_output=True,
-                              timeout=time_limit, preexec_fn=_limits(debug))
+                              timeout=time_limit, **extra)
     except subprocess.TimeoutExpired as e:
         return {"status": "TLE", "stdout": (e.stdout or b"").decode(errors="replace"),
                 "stderr": "", "time": time.perf_counter() - start, "code": None}
@@ -241,6 +259,16 @@ def describe_returncode(code):
                 "SIGFPE": "算術錯誤：除以 0 或 mod 0？",
                 "SIGKILL": "被強制終止：可能用太多記憶體？"}.get(name, "")
         return f"收到訊號 {name}。{hint}"
+    # Windows 當掉時的結束碼（NTSTATUS），例如 3221225477 = 0xC0000005
+    win = {0xC0000005: "記憶體存取錯誤（ACCESS_VIOLATION）：陣列越界、空指標？",
+           0xC00000FD: "堆疊溢位（STACK_OVERFLOW）：遞迴太深？",
+           0xC0000094: "算術錯誤（INTEGER_DIVIDE_BY_ZERO）：除以 0 或 mod 0？",
+           0xC0000095: "整數溢位（INTEGER_OVERFLOW）：例如 INT_MIN / -1？",
+           0xC0000409: "程式被中止（STACK_BUFFER_OVERRUN / abort）：陣列越界或 STL 偵測到錯誤？",
+           0xC0000017: "記憶體不足（NO_MEMORY）？",
+           3: "程式被中止（abort）：assert 失敗或 STL 偵測到錯誤？"}
+    if IS_WINDOWS and (code & 0xFFFFFFFF) in win:
+        return f"結束碼 {code & 0xFFFFFFFF:#x}。{win[code & 0xFFFFFFFF]}"
     return f"main 回傳 {code}（不是 0）"
 
 

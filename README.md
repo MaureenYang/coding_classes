@@ -33,6 +33,17 @@ python3 judge.py test c7           # C++ 深入路線第 7 題（c07_fraction）
 
 詳細說明請看 [`lessons/00_how_to_use.md`](lessons/00_how_to_use.md)。
 
+### Windows 使用者
+
+可以直接在 Windows 上執行（指令裡的 `python3` 可能要改成 `python` 或 `py`），需要先安裝：
+
+- **Python 3**：從 python.org 安裝，安裝時勾選「Add Python to PATH」。
+- **g++**：例如安裝 [MSYS2](https://www.msys2.org/) 後執行 `pacman -S mingw-w64-ucrt-x86_64-gcc`，再把 `C:\msys64\ucrt64\bin` 加進 PATH。打開新的終端機輸入 `g++ --version` 看得到版本號就成功了。
+
+和 Linux / Mac 的差別：
+- Windows 上沒有記憶體上限檢查（MLE 只能靠程式自己配置失敗才偵測得到）。
+- `--debug` 模式只有 STL 的越界檢查（`_GLIBCXX_DEBUG`），沒有 AddressSanitizer / UBSan（MinGW 不支援）。需要完整的檢查時，建議用 WSL（`wsl --install`）在 Linux 環境裡執行。
+
 ## 題目列表
 
 ### 📚 資料結構
