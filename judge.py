@@ -4,14 +4,15 @@
 常用指令：
     python3 judge.py list                     列出所有題目與進度
     python3 judge.py show   <題目>            顯示題目敘述
-    python3 judge.py start  <題目>            複製樣板到 workspace/<題目>.cpp
+    python3 judge.py start  <題目>            複製樣板到 workspace/<題目>.cpp（C 語言題是 .c）
     python3 judge.py gen    <題目> [--seed S] 產生測資（含 corner case + 隨機測資）
     python3 judge.py test   <題目> [檔案]     編譯並跑全部測資，回報 AC/WA/TLE/RE
     python3 judge.py stress <題目> [檔案]     對拍：隨機小測資和標準解比對，找出反例
     python3 judge.py run    <檔案> [輸入檔]   單純編譯並執行你的程式
     python3 judge.py serve  [--port 8000]     啟動網頁版（瀏覽器寫 code、跑測資）
 
-<題目> 可以寫完整名稱 (03_my_vector)、編號 (3) 或名稱 (my_vector)。
+<題目> 可以寫完整名稱 (03_my_vector)、編號 (3、c7、cl3) 或名稱 (my_vector)。
+<檔案> 副檔名是 .c 的用 gcc -std=c11 編譯，其他用 g++ -std=c++17。
 加上 --debug 會用 -fsanitize=address,undefined 編譯，可抓出越界、記憶體錯誤。
 """
 import argparse
@@ -31,11 +32,14 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PROBLEMS_DIR = os.path.join(ROOT, "problems")
 LESSONS_DIR = os.path.join(ROOT, "lessons")
 
-# 兩條學習路線：資料結構 (ds) 與 C++ 深入 (cpp)，各自有教學與題目資料夾
+# 三條學習路線：資料結構 (ds)、C++ 深入 (cpp)、C 語言 (c)，各自有教學與題目資料夾。
+# lang 決定題目用哪種語言作答（樣板 / 標準解的副檔名、用哪個編譯器）。
 TRACKS = {
-    "ds": {"name": "資料結構", "lessons": LESSONS_DIR, "problems": PROBLEMS_DIR},
+    "ds": {"name": "資料結構", "lessons": LESSONS_DIR, "problems": PROBLEMS_DIR, "lang": "cpp"},
     "cpp": {"name": "C++ 深入", "lessons": os.path.join(ROOT, "cpp", "lessons"),
-            "problems": os.path.join(ROOT, "cpp", "problems")},
+            "problems": os.path.join(ROOT, "cpp", "problems"), "lang": "cpp"},
+    "c": {"name": "C 語言", "lessons": os.path.join(ROOT, "c", "lessons"),
+          "problems": os.path.join(ROOT, "c", "problems"), "lang": "c"},
 }
 WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")
@@ -44,16 +48,24 @@ PROGRESS_FILE = os.path.join(ROOT, ".progress.json")
 IS_WINDOWS = os.name == "nt"
 
 CXX = os.environ.get("CXX", "g++")
-BASE_FLAGS = ["-std=c++17", "-Wall", "-Wextra", "-Wno-unused-result", "-Wno-unused-parameter"]
+CC = os.environ.get("CC", "gcc")
+WARN_FLAGS = ["-Wall", "-Wextra", "-Wno-unused-result", "-Wno-unused-parameter"]
+BASE_FLAGS = ["-std=c++17", *WARN_FLAGS]
+C_BASE_FLAGS = ["-std=c11", *WARN_FLAGS]
+C_LINK_FLAGS = ["-lm"]                     # C 的 <math.h> 要另外連結數學函式庫
 RELEASE_FLAGS = ["-O2"]
 if IS_WINDOWS:
     # Windows 預設的堆疊只有 1 MB，遞迴深一點就當掉；調成 64 MB，接近 Linux 評測環境
     BASE_FLAGS += ["-Wl,--stack,67108864"]
+    C_BASE_FLAGS += ["-Wl,--stack,67108864"]
     # MinGW 的 g++ 不支援 AddressSanitizer / UBSan，只保留 STL 的除錯檢查
     DEBUG_FLAGS = ["-g", "-O1", "-D_GLIBCXX_DEBUG"]
+    C_DEBUG_FLAGS = ["-g", "-O1"]
 else:
     DEBUG_FLAGS = ["-g", "-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                    "-D_GLIBCXX_DEBUG"]
+    C_DEBUG_FLAGS = ["-g", "-O1", "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
+SOURCE_EXT = {"cpp": ".cpp", "c": ".c"}
 EXE_SUFFIX = ".exe" if IS_WINDOWS else ".out"
 MEMORY_LIMIT_MB = 512
 
@@ -104,8 +116,8 @@ def resolve_problem(name):
     ids = list_problem_ids()
     if name in ids:
         return name
-    m = re.fullmatch(r"([cC]?)(\d+)", name)
-    if m:  # 3 → 03_my_vector；c7 → c07_fraction
+    m = re.fullmatch(r"([a-zA-Z]*)(\d+)", name)
+    if m:  # 3 → 03_my_vector；c7 → c07_fraction；cl3 → cl03_（C 語言路線）
         prefix = m.group(1).lower()
         for pid in ids:
             head = pid.split("_", 1)[0]
@@ -134,8 +146,17 @@ def problem_path(pid, *parts):
     return os.path.join(TRACKS[track]["problems"], pid, *parts)
 
 
+def problem_lang(pid):
+    return TRACKS[problem_track(pid) or "ds"]["lang"]
+
+
+def problem_file(pid, stem):
+    """題目的樣板 / 標準解：C 語言路線是 template.c / solution.c，其他是 .cpp。"""
+    return problem_path(pid, stem + SOURCE_EXT[problem_lang(pid)])
+
+
 def workspace_file(pid):
-    return os.path.join(WORKSPACE_DIR, f"{pid}.cpp")
+    return os.path.join(WORKSPACE_DIR, pid + SOURCE_EXT[problem_lang(pid)])
 
 
 def load_progress():
@@ -166,23 +187,33 @@ class CompileError(Exception):
     pass
 
 
+def lang_of_file(path):
+    """副檔名是 .c 的用 C 編譯，其他都當成 C++。"""
+    return "c" if path.lower().endswith(".c") else "cpp"
+
+
 def compile_cpp(src, debug=False):
-    """編譯 C++ 檔案，回傳執行檔路徑；同樣內容不會重複編譯。"""
+    """編譯 C / C++ 檔案（依副檔名決定），回傳執行檔路徑；同樣內容不會重複編譯。"""
     os.makedirs(BUILD_DIR, exist_ok=True)
     with open(src, "rb") as f:
         code = f.read()
-    flags = BASE_FLAGS + (DEBUG_FLAGS if debug else RELEASE_FLAGS)
-    key = hashlib.sha1(code + " ".join(flags).encode()).hexdigest()[:16]
+    lang = lang_of_file(src)
+    if lang == "c":
+        compiler, flags, tail = CC, C_BASE_FLAGS + (C_DEBUG_FLAGS if debug else RELEASE_FLAGS), C_LINK_FLAGS
+    else:
+        compiler, flags, tail = CXX, BASE_FLAGS + (DEBUG_FLAGS if debug else RELEASE_FLAGS), []
+    key = hashlib.sha1(code + " ".join([compiler, *flags]).encode()).hexdigest()[:16]
     exe = os.path.join(BUILD_DIR, f"{key}{EXE_SUFFIX}")
     if os.path.exists(exe):
         return exe
     tmp = os.path.join(BUILD_DIR, f"{key}.tmp{EXE_SUFFIX}")
     try:
-        proc = subprocess.run([CXX, *flags, src, "-o", tmp],
+        proc = subprocess.run([compiler, *flags, src, "-o", tmp, *tail],
                               capture_output=True, text=True, encoding="utf-8", errors="replace")
     except FileNotFoundError:
-        raise CompileError(f"找不到 C++ 編譯器 {CXX!r}。請先安裝 g++，並確認在終端機輸入 "
-                           f"`{CXX} --version` 能看到版本號。") from None
+        name = "C" if lang == "c" else "C++"
+        raise CompileError(f"找不到 {name} 編譯器 {compiler!r}。請先安裝，並確認在終端機輸入 "
+                           f"`{compiler} --version` 能看到版本號。") from None
     if proc.returncode != 0:
         raise CompileError(proc.stderr)
     os.replace(tmp, exe)
@@ -192,21 +223,22 @@ def compile_cpp(src, debug=False):
     return exe
 
 
-def compile_code_string(code, debug=False):
+def compile_code_string(code, debug=False, lang="cpp"):
     os.makedirs(BUILD_DIR, exist_ok=True)
-    fd, path = tempfile.mkstemp(suffix=".cpp", dir=BUILD_DIR)
+    ext = SOURCE_EXT.get(lang, ".cpp")
+    fd, path = tempfile.mkstemp(suffix=ext, dir=BUILD_DIR)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(code)
     try:
         return compile_cpp(path, debug)
     except CompileError as e:
-        raise CompileError(str(e).replace(path, "main.cpp")) from None
+        raise CompileError(str(e).replace(path, "main" + ext)) from None
     finally:
         os.unlink(path)
 
 
 def reference_exe(pid):
-    return compile_cpp(problem_path(pid, "solution.cpp"))
+    return compile_cpp(problem_file(pid, "solution"))
 
 
 # --------------------------------------------------------------------- run --
@@ -332,16 +364,17 @@ def generate_tests(pid, seed=None, quiet=False, plan=None):
     os.makedirs(d)
     ref = reference_exe(pid)
     tl = max(10.0, getattr(meta, "TIME_LIMIT", 2.0) * 5)
+    raw = getattr(meta, "RAW_INPUT", False)
     for idx, (name, text) in enumerate(cases, 1):
-        if not text.endswith("\n"):
+        if not text.endswith("\n") and not raw:   # RAW_INPUT：測資的結尾不自動補換行
             text += "\n"
         base = f"{idx:02d}_{name}"
         res = run_exe(ref, text, tl)
         if res["status"] != "OK":
             raise SystemExit(f"標準解在測資 {base} 執行失敗：{res['status']}\n{res['stderr']}")
-        with open(os.path.join(d, base + ".in"), "w", encoding="utf-8") as f:
+        with open(os.path.join(d, base + ".in"), "w", encoding="utf-8", newline="") as f:
             f.write(text)
-        with open(os.path.join(d, base + ".out"), "w", encoding="utf-8") as f:
+        with open(os.path.join(d, base + ".out"), "w", encoding="utf-8", newline="") as f:
             f.write(res["stdout"])
     if not quiet:
         print(green(f"已產生 {len(cases)} 筆測資") + f" → {os.path.relpath(d, ROOT)}/  (seed={seed})")
@@ -356,19 +389,20 @@ def ensure_tests(pid):
         generate_tests(pid, quiet=True)
 
 
-def judge_problem(pid, src=None, code=None, debug=False, stop_on_fail=False, on_result=None):
+def judge_problem(pid, src=None, code=None, debug=False, stop_on_fail=False, on_result=None, lang=None):
     """跑所有測資，回傳 dict(verdict, results, compile_error)。"""
     meta = load_meta(pid)
     tl = getattr(meta, "TIME_LIMIT", 2.0) * (4 if debug else 1)
     ensure_tests(pid)
     try:
-        exe = compile_code_string(code, debug) if code is not None else compile_cpp(src, debug)
+        exe = (compile_code_string(code, debug, lang or problem_lang(pid)) if code is not None
+               else compile_cpp(src, debug))
     except CompileError as e:
         return {"verdict": "CE", "results": [], "compile_error": str(e)}
     results = []
     final = "AC"
     for name in list_tests(pid):
-        with open(os.path.join(tests_dir(pid), name + ".in"), encoding="utf-8") as f:
+        with open(os.path.join(tests_dir(pid), name + ".in"), encoding="utf-8", newline="") as f:
             inp = f.read()
         with open(os.path.join(tests_dir(pid), name + ".out"), encoding="utf-8") as f:
             exp = f.read()
@@ -410,7 +444,7 @@ def pick_source(pid, path):
     if os.path.exists(ws):
         return ws
     raise SystemExit(f"找不到你的程式。先執行 `python3 judge.py start {pid}`，"
-                     f"或指定檔案：`python3 judge.py test {pid} my.cpp`")
+                     f"或指定檔案：`python3 judge.py test {pid} my{SOURCE_EXT[problem_lang(pid)]}`")
 
 
 def print_failure(r, debug=False):
@@ -452,8 +486,8 @@ def cmd_list(args):
             else:
                 status = dim("未開始")
             print(f"{pid:<26}{meta.TOPIC:<14}{meta.DIFFICULTY:<6}{status}")
-    print(dim("\n教學在 lessons/（資料結構）與 cpp/lessons/（C++ 深入）。"))
-    print(dim("題目可用編號指定：3 → 03_my_vector，c7 → C++ 深入第 7 題。"))
+    print(dim("\n教學在 lessons/（資料結構）、cpp/lessons/（C++ 深入）、c/lessons/（C 語言）。"))
+    print(dim("題目可用編號指定：3 → 03_my_vector，c7 → C++ 深入第 7 題，cl3 → C 語言第 3 題。"))
 
 
 def cmd_show(args):
@@ -469,9 +503,9 @@ def cmd_start(args):
     if os.path.exists(dst) and not args.force:
         print(f"{os.path.relpath(dst, ROOT)} 已存在（加 --force 會覆蓋）。")
     else:
-        shutil.copy(problem_path(pid, "template.cpp"), dst)
+        shutil.copy(problem_file(pid, "template"), dst)
         print(green("已建立 ") + os.path.relpath(dst, ROOT))
-    print(f"題目：problems/{pid}/problem.md")
+    print(f"題目：{os.path.relpath(problem_path(pid, 'problem.md'), ROOT)}")
     print(f"寫完後執行：python3 judge.py test {pid}")
 
 
@@ -529,7 +563,7 @@ def cmd_stress(args):
     print(f"對拍 {cyan(pid)}：最多 {args.n} 筆隨機小測資 (seed={seed})")
     for i in range(1, args.n + 1):
         inp = meta.random_case(rng, "small")
-        if not inp.endswith("\n"):
+        if not inp.endswith("\n") and not getattr(meta, "RAW_INPUT", False):
             inp += "\n"
         exp = run_exe(ref, inp, 10)["stdout"]
         got = run_exe(mine, inp, tl, args.debug)

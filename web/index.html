@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C++ 資料結構練習</title>
+<title>C / C++ 資料結構練習</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
@@ -96,10 +96,11 @@
 </head>
 <body>
 <header>
-  <h1>🧑‍🏫 C++ 練習平台</h1>
+  <h1>🧑‍🏫 C / C++ 練習平台</h1>
   <div class="tracks" id="tracks">
     <a href="#" data-t="ds">📚 資料結構</a>
     <a href="#cpp" data-t="cpp">🔧 C++ 深入</a>
+    <a href="#c" data-t="c">🅲 C 語言</a>
   </div>
   <span class="progress" id="progress"></span>
 </header>
@@ -173,16 +174,19 @@ function renderMd(md) {
   return html;
 }
 
-let problems = [], lessons = [], current = null, editor = null, saveTimer = null;
+let problems = [], lessons = [], current = null, currentLang = "cpp", currentFile = "", editor = null, saveTimer = null;
 let track = "ds", navTrack = null;
-const TRACK_NAME = {ds: "資料結構", cpp: "C++ 深入"};
-const lessonHash = name => (track === "cpp" ? "cpp/lesson/" : "lesson/") + name;
+const TRACK_NAME = {ds: "資料結構", cpp: "C++ 深入", c: "C 語言"};
+const lessonHash = name => (track === "ds" ? "lesson/" : track + "/lesson/") + name;
 const pidLabel = id => id.split("_")[0].toUpperCase();
 
-// 由網址判斷目前在哪一條路線：#cpp、#cpp/lesson/...、#problem/c07_... 都是 C++ 深入
+// 由網址判斷目前在哪一條路線：#cpp、#cpp/lesson/...、#problem/c07_... 是 C++ 深入；
+// #c、#c/lesson/...、#problem/cl03_... 是 C 語言
 function trackOfHash(h) {
   if (h === "cpp" || h.startsWith("cpp/")) return "cpp";
+  if (h === "c" || h.startsWith("c/")) return "c";
   const m = h.match(/^problem\/(.+)/);
+  if (m && /^cl\d/.test(m[1])) return "c";
   return m && /^c\d/.test(m[1]) ? "cpp" : "ds";
 }
 
@@ -205,11 +209,12 @@ function highlightNav() {
 
 function showWelcome() {
   if (track === "cpp") return showCppWelcome();
+  if (track === "c") return showCWelcome();
   $("#main").innerHTML = `<div class="doc"><div class="welcome md">
     <h1>歡迎！</h1>
     <p>左邊是 <b>教學</b> 和 <b>題目</b>。建議的路線：先讀一篇教學，再做對應的題目。</p>
     <ul>
-      <li>在右邊的編輯器寫 C++，程式會自動存到 <code>workspace/&lt;題目&gt;.cpp</code>。</li>
+      <li>在右邊的編輯器寫 C++，程式會自動存到 <code>workspace/&lt;題目&gt;.cpp</code>（C 語言路線是 <code>.c</code>）。</li>
       <li><b>執行</b>：用你自己輸入的資料跑一次（像在本機執行）。</li>
       <li><b>提交評測</b>：跑全部測資（含 corner case），顯示 AC / WA / TLE / RE。</li>
       <li>勾選 <b>debug</b> 會用 AddressSanitizer 編譯，能抓到越界、空指標等錯誤。</li>
@@ -232,14 +237,28 @@ function showCppWelcome() {
   </div></div>`;
 }
 
+function showCWelcome() {
+  $("#main").innerHTML = `<div class="doc"><div class="welcome md">
+    <h1>🅲 C 語言</h1>
+    <p>這條路線學的是 <b>C 語言</b>（不是 C++）：printf / scanf、指標、陣列與字串、malloc / free、struct、函式指標、檔案輸入輸出、前置處理器，最後用 C 親手實作資料結構。</p>
+    <ul>
+      <li>作答用 <b>C</b>（gcc -std=c11），程式會自動存到 <code>workspace/&lt;題目&gt;.c</code>。</li>
+      <li>每一課最後都有 <b>觀念習題</b>（預測輸出、找 bug），附詳解。</li>
+      <li>命令列也能用：<code>python3 judge.py test cl3</code>（C 語言第 3 題）。</li>
+      <li>學過 C 再學 C++ 的話，C++ 深入路線會告訴你 C++ 用什麼取代了 C 的寫法。</li>
+    </ul>
+    <div class="cards">${lessons.map(l => `<div class="card" onclick="location.hash='${lessonHash(l.name)}'"><b>${esc(l.title)}</b><span class="muted">${esc(l.name)}</span></div>`).join("")}</div>
+  </div></div>`;
+}
+
 async function showLesson(name) {
   const {markdown} = await api(`/api/lesson?track=${track}&name=` + encodeURIComponent(name));
   $("#main").innerHTML = `<div class="doc"><div class="narrow md">${renderMd(markdown)}</div></div>`;
   // 教學中的題目連結 problems/xx/problem.md → 直接跳到題目
   document.querySelectorAll(".md code").forEach(c => {
-    const m = c.textContent.match(/^(?:(?:cpp\/)?problems\/)?(c?\d\d_[a-z0-9_]+)(?:\/problem\.md)?$/);
-    const m2 = c.textContent.match(/^C(\d\d)\b/);          // 「C08 圖形與多型」這種寫法
-    const pid = m ? m[1] : m2 ? (problems.find(p => p.id.startsWith("c" + m2[1] + "_")) || {}).id : null;
+    const m = c.textContent.match(/^(?:(?:cpp\/|c\/)?problems\/)?((?:cl|c)?\d\d_[a-z0-9_]+)(?:\/problem\.md)?$/);
+    const m2 = c.textContent.match(/^(CL|C)(\d\d)\b/);    // 「C08 圖形與多型」「CL03 指標」這種寫法
+    const pid = m ? m[1] : m2 ? (problems.find(p => p.id.startsWith(m2[1].toLowerCase() + m2[2] + "_")) || {}).id : null;
     if (pid && problems.some(p => p.id === pid)) {
       c.style.cursor = "pointer"; c.style.textDecoration = "underline";
       c.onclick = () => location.hash = "problem/" + pid;
@@ -252,7 +271,7 @@ function setCode(c) { if (editor.setValue) editor.setValue(c); else editor.value
 
 async function showProblem(id) {
   const p = await api("/api/problem?id=" + encodeURIComponent(id));
-  current = p.id;
+  current = p.id; currentLang = p.lang || "cpp"; currentFile = p.workspace || `workspace/${p.id}.cpp`;
   $("#main").innerHTML = `
     <div class="split">
       <div class="left md">${renderMd(p.markdown)}</div>
@@ -285,7 +304,7 @@ async function showProblem(id) {
     </div>`;
   const box = $("#editorBox");
   if (window.CodeMirror) {
-    editor = CodeMirror(box, {value: p.code, mode: "text/x-c++src", lineNumbers: true, indentUnit: 4,
+    editor = CodeMirror(box, {value: p.code, mode: currentLang === "c" ? "text/x-csrc" : "text/x-c++src", lineNumbers: true, indentUnit: 4,
       tabSize: 4, matchBrackets: true, autoCloseBrackets: true, theme: dark ? "material-darker" : "default",
       extraKeys: {"Ctrl-Enter": submit, "Cmd-Enter": submit, "Ctrl-S": () => save(true), "Cmd-S": () => save(true)}});
     editor.on("change", scheduleSave);
@@ -322,7 +341,7 @@ function scheduleSave() {
 async function save(manual) {
   clearTimeout(saveTimer); saveTimer = null;
   await api("/api/save", {id: current, code: getCode()});
-  $("#saved").textContent = `已儲存到 workspace/${current}.cpp`;
+  $("#saved").textContent = `已儲存到 ${currentFile}`;
 }
 
 function busy(on) { ["#btnSubmit", "#btnRun"].forEach(s => $(s).disabled = on); }
@@ -332,7 +351,7 @@ async function run() {
   $("#runStatus").innerHTML = "編譯執行中…"; $("#runOut").textContent = "";
   try {
     save(false);
-    const r = await api("/api/run", {code: getCode(), input: $("#runIn").value, debug: $("#debug").checked});
+    const r = await api("/api/run", {code: getCode(), input: $("#runIn").value, debug: $("#debug").checked, lang: currentLang});
     if (r.status === "CE") {
       $("#runStatus").innerHTML = `<span class="verdict v-CE">編譯錯誤</span>`;
       $("#runOut").textContent = r.compile_error;
@@ -351,7 +370,7 @@ async function submit() {
   pane.innerHTML = `<span class="muted">編譯並評測中…</span>`;
   try {
     const r = await api("/api/submit", {id: current, code: getCode(), debug: $("#debug").checked});
-    $("#saved").textContent = `已儲存到 workspace/${current}.cpp`;
+    $("#saved").textContent = `已儲存到 ${currentFile}`;
     if (r.verdict === "CE") {
       pane.innerHTML = `<div class="summary verdict v-CE">編譯錯誤 (CE)</div><pre class="out">${esc(r.compile_error)}</pre>`;
     } else {
@@ -412,7 +431,7 @@ async function route() {
   highlightNav();
   try {
     if (h.startsWith("lesson/")) await showLesson(h.slice(7));
-    else if (h.startsWith("cpp/lesson/")) await showLesson(h.slice(11));
+    else if (/^(cpp|c)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c)\/lesson\//, ""));
     else if (h.startsWith("problem/")) await showProblem(h.slice(8));
     else showWelcome();
   } catch (e) { $("#main").innerHTML = `<div class="doc">錯誤：${esc(e.message)}</div>`; }

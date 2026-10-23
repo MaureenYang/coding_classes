@@ -1,7 +1,7 @@
 """網頁版：python3 judge.py serve，然後用瀏覽器打開 http://127.0.0.1:8000
 
 只用 Python 標準函式庫。注意：這個伺服器會編譯並執行送進來的 C++ 程式，
-所以預設只綁定 127.0.0.1（只有自己的電腦連得到）。
+（C++ 與 C）所以預設只綁定 127.0.0.1（只有自己的電腦連得到）。
 """
 import json
 import os
@@ -61,9 +61,10 @@ def read(path):
 
 def problem_detail(pid):
     ws = judge.workspace_file(pid)
-    code = read(ws) if os.path.exists(ws) else read(judge.problem_path(pid, "template.cpp"))
+    code = read(ws) if os.path.exists(ws) else read(judge.problem_file(pid, "template"))
     meta = judge.load_meta(pid)
-    return {"id": pid, "track": judge.problem_track(pid),
+    return {"id": pid, "track": judge.problem_track(pid), "lang": judge.problem_lang(pid),
+            "workspace": os.path.relpath(ws, judge.ROOT).replace(os.sep, "/"),
             "markdown": read(judge.problem_path(pid, "problem.md")), "code": code,
             "time_limit": getattr(meta, "TIME_LIMIT", 2.0)}
 
@@ -87,9 +88,11 @@ def save_code(pid, code):
         f.write(code)
 
 
-def run_code(code, inp, debug):
+def run_code(code, inp, debug, lang="cpp"):
+    if lang not in judge.SOURCE_EXT:
+        raise ValueError("bad lang")
     try:
-        exe = judge.compile_code_string(code, debug)
+        exe = judge.compile_code_string(code, debug, lang)
     except judge.CompileError as e:
         return {"status": "CE", "compile_error": str(e)}
     res = judge.run_exe(exe, inp, 10.0, debug)
@@ -101,7 +104,7 @@ def run_code(code, inp, debug):
 
 def submit(pid, code, debug):
     save_code(pid, code)
-    res = judge.judge_problem(pid, code=code, debug=debug)
+    res = judge.judge_problem(pid, code=code, debug=debug, lang=judge.problem_lang(pid))
     passed = sum(r["verdict"] == "AC" for r in res["results"])
     total = len(judge.list_tests(pid))
     judge.save_progress(pid, res["verdict"], passed, total)
@@ -157,7 +160,8 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
             debug = bool(body.get("debug"))
             if url.path == "/api/run":
-                return self.send_json(run_code(body.get("code", ""), body.get("input", ""), debug))
+                return self.send_json(run_code(body.get("code", ""), body.get("input", ""), debug,
+                                               body.get("lang") or "cpp"))
             pid = judge.resolve_problem(body.get("id", ""))
             if url.path == "/api/save":
                 save_code(pid, body.get("code", ""))
@@ -169,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
                 n = judge.generate_tests(pid, seed=int(seed) if seed not in (None, "") else None, quiet=True)
                 return self.send_json({"ok": True, "count": n})
             if url.path == "/api/reset":
-                code = read(judge.problem_path(pid, "template.cpp"))
+                code = read(judge.problem_file(pid, "template"))
                 save_code(pid, code)
                 return self.send_json({"code": code})
             self.send_json({"error": "not found"}, 404)

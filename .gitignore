@@ -8,3 +8,4 @@ __pycache__/
 .progress.json
 workspace/*.failed.in
 cpp/problems/*/tests/
+c/problems/*/tests/
