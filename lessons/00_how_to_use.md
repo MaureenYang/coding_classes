@@ -1,10 +1,11 @@
 # 00. 如何使用這個平台
 
-這是一個在自己電腦上跑的 **C / C++ 家教 + 線上評測（Online Judge）**，有三條路線：
+這是一個在自己電腦上跑的 **C / C++ 家教 + 線上評測（Online Judge）**，有三條練習路線和一本讀本：
 
 - 📚 **資料結構**（這裡）：`lessons/` 和 `problems/`
-- 🔧 **C++ 深入**：`cpp/lessons/` 和 `cpp/problems/`，專門把 C++ 語言本身學扎實（指標、記憶體、類別、繼承、模板、例外……）。網頁版上方可以切換，從 `cpp/lessons/00_roadmap.md` 開始。
+- 🔧 **C++ 深入**：`cpp/lessons/` 和 `cpp/problems/`，專門把 C++ 語言本身學扎實（指標、記憶體、類別、繼承、模板、例外……）。網頁版左上角可以切換，從 `cpp/lessons/00_roadmap.md` 開始。
 - 🅲 **C 語言**：`c/lessons/` 和 `c/problems/`，用 C11 從 `printf`、指標、`malloc` / `free` 學到用 C 實作串列和雜湊表。題目用 `.c` 檔作答、`gcc` 編譯。從 `c/lessons/00_roadmap.md` 開始。
+- 📖 **C 介面與實作**：`cii/lessons/`，《C Interfaces and Implementations》20 章的中文讀書筆記，示範怎麼用 C 寫出可重複使用的模組。只有閱讀，建議學完 C 語言路線再讀。
 
 建議：C++ 語法還不熟的話，先讀 C++ 深入的第 01 ~ 07 課，再回來做資料結構。
 你會在這裡：

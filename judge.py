@@ -40,6 +40,9 @@ TRACKS = {
             "problems": os.path.join(ROOT, "cpp", "problems"), "lang": "cpp"},
     "c": {"name": "C 語言", "lessons": os.path.join(ROOT, "c", "lessons"),
           "problems": os.path.join(ROOT, "c", "problems"), "lang": "c"},
+    # 讀本：只有教學（《C Interfaces and Implementations》讀書筆記），沒有評測題目
+    "cii": {"name": "C 介面與實作", "lessons": os.path.join(ROOT, "cii", "lessons"),
+            "problems": os.path.join(ROOT, "cii", "problems"), "lang": "c"},
 }
 WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")

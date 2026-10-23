@@ -21,17 +21,28 @@ def track_of(q):
     return t
 
 
+def lesson_parts(track="ds"):
+    """教學目錄裡的 parts.json（可省略）：把教學分組、提供書名等資訊給側欄。"""
+    path = os.path.join(judge.TRACKS[track]["lessons"], "parts.json")
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def lesson_list(track="ds"):
     out = []
     d = judge.TRACKS[track]["lessons"]
     if not os.path.isdir(d):
         return out
+    parts = lesson_parts(track).get("parts", [])
     for name in sorted(os.listdir(d)):
         if not name.endswith(".md"):
             continue
         with open(os.path.join(d, name), encoding="utf-8") as f:
             first = f.readline().lstrip("# ").strip()
-        out.append({"name": name, "title": first})
+        part = next((i for i, p in enumerate(parts) if any(name.startswith(x) for x in p["prefixes"])), None)
+        out.append({"name": name, "title": first, "part": part})
     return out
 
 
@@ -147,6 +158,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(tests_detail(judge.resolve_problem(q["id"])))
             if url.path == "/api/lessons":
                 return self.send_json(lesson_list(track_of(q)))
+            if url.path == "/api/parts":
+                return self.send_json(lesson_parts(track_of(q)))
             if url.path == "/api/lesson":
                 return self.send_json({"markdown": read(safe_lesson(q.get("name"), track_of(q)))})
             self.send_json({"error": "not found"}, 404)
@@ -185,7 +198,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(host="127.0.0.1", port=8000):
     srv = ThreadingHTTPServer((host, port), Handler)
-    print(f"C++ 資料結構練習平台已啟動：http://{host}:{port}  （Ctrl+C 結束）")
+    print(f"C / C++ 練習平台已啟動：http://{host}:{port}  （Ctrl+C 結束）")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

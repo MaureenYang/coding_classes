@@ -1,0 +1,13 @@
+{
+  "book": {
+    "kicker": "讀書筆記 · 中文",
+    "title": "C Interfaces and Implementations",
+    "by": "David R. Hanson · 1996"
+  },
+  "parts": [
+    {"label": "一、方法論與基礎設施", "range": "Ch 1–6", "prefixes": ["ch01", "ch02", "ch03", "ch04", "ch05", "ch06"]},
+    {"label": "二、資料結構", "range": "Ch 7–13", "prefixes": ["ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13"]},
+    {"label": "三、字串", "range": "Ch 14–16", "prefixes": ["ch14", "ch15", "ch16"]},
+    {"label": "四、數值與並行", "range": "Ch 17–20", "prefixes": ["ch17", "ch18", "ch19", "ch20"]}
+  ]
+}
