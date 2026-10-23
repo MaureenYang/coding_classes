@@ -153,7 +153,14 @@ article { min-width: 0; max-width: 46rem; justify-self: center; width: 100%; }
   font: 700 23px/1.3 var(--font-display); margin: 52px 0 14px; padding-top: 10px;
   border-top: 1px solid var(--rule); text-wrap: balance; scroll-margin-top: 24px;
 }
-.md > h1 + h2, .md > h2:first-child { margin-top: 0; }
+.md > h2:first-child { margin-top: 0; }
+/* 內文裡的 h1 是「第一部分」這一層的大段落（章名的 h1 在章首，不受影響） */
+.md:not(.chapter-head) > h1 {
+  font: 700 clamp(23px, 3.2vw, 28px)/1.3 var(--font-display); margin: 72px 0 18px; padding-top: 16px;
+  border-top: 2px solid var(--ink); scroll-margin-top: 24px; text-wrap: balance;
+}
+.md:not(.chapter-head) > h1:first-child { margin-top: 0; }
+.md > h1 + h2 { margin-top: 8px; padding-top: 0; border-top: 0; }
 .md h3 { font: 600 18px/1.4 var(--font-display); margin: 32px 0 10px; scroll-margin-top: 24px; text-wrap: balance; }
 .md h4 { font: 600 16px var(--font-display); margin: 24px 0 8px; }
 .md p { margin: 0 0 16px; }
@@ -226,6 +233,9 @@ article { min-width: 0; max-width: 46rem; justify-self: center; width: 100%; }
 .toc a { display: block; padding: 5px 0 5px 14px; margin-left: -1px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 13.5px; line-height: 1.4; }
 .toc a:hover { color: var(--ink); }
 .toc a.active { color: var(--accent); border-left-color: var(--accent); }
+.toc a.lv1 { color: var(--ink); font-weight: 600; padding-top: 8px; }
+.toc a.lv1.active, .toc a.lv1.in-part { color: var(--accent); }
+.toc a.lv2 { padding-left: 26px; font-size: 13px; }
 
 /* ---------- 題目工作台 ---------- */
 .bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); height: 100%; min-height: 0; }
@@ -609,10 +619,15 @@ function slug(text, used) {
 function showReader(head, body, pager, withToc = true) {
   const used = new Set();
   tocHeads = [];
-  body.querySelectorAll("h2, h3").forEach(h => {
+  // 內文有 h1（「第一部分」這一層）時，本章段落分兩層：h1 一直顯示，h2 只展開目前所在的部分
+  const hasParts = !!body.querySelector(":scope > h1");
+  let part = -1;
+  body.querySelectorAll("h1, h2, h3").forEach(h => {
     h.id = slug(h.textContent, used);
-    if (h.tagName === "H2") tocHeads.push(h);
+    if (h.tagName === "H1") { part++; h.dataset.part = part; tocHeads.push(h); }
+    else if (h.tagName === "H2") { h.dataset.part = part; tocHeads.push(h); }
   });
+  tocHeads.hasParts = hasParts;
   const toc = withToc && tocHeads.length > 1;
   const main = $("#main");
   main.innerHTML = `<div class="reader${toc ? "" : " no-toc"}"><article id="article"></article>${toc ?
@@ -621,7 +636,10 @@ function showReader(head, body, pager, withToc = true) {
   article.append(head, body);
   if (pager) article.appendChild(pager);
   if (toc) {
-    $("#toc").innerHTML = tocHeads.map(h => `<li><a href="#" data-target="${h.id}">${esc(h.textContent)}</a></li>`).join("");
+    $("#toc").innerHTML = tocHeads.map(h => {
+      const lv = !hasParts ? "" : h.tagName === "H1" ? "lv1" : "lv2";
+      return `<li${lv === "lv2" ? ` data-part="${h.dataset.part}"` : ""}><a href="#" class="${lv}" data-target="${h.id}">${esc(h.textContent)}</a></li>`;
+    }).join("");
     $("#toc").querySelectorAll("a").forEach(a => a.onclick = e => {
       e.preventDefault();
       document.getElementById(a.dataset.target).scrollIntoView({behavior: "smooth", block: "start"});
@@ -640,6 +658,12 @@ function onScroll() {
   let active = tocHeads[0];
   for (const h of tocHeads) { if (h.getBoundingClientRect().top <= top) active = h; else break; }
   $("#toc").querySelectorAll("a").forEach(a => a.classList.toggle("active", active && a.dataset.target === active.id));
+  if (tocHeads.hasParts && active) {
+    const part = active.dataset.part;
+    $("#toc").querySelectorAll("li[data-part]").forEach(li => li.hidden = li.dataset.part !== part);
+    $("#toc").querySelectorAll("a.lv1").forEach(a => a.classList.toggle("in-part",
+      document.getElementById(a.dataset.target).dataset.part === part && a.dataset.target !== active.id));
+  }
 }
 $("#main").addEventListener("scroll", onScroll, {passive: true});
 
