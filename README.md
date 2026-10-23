@@ -1,18 +1,19 @@
 # C++ 資料結構家教 🧑‍🏫
 
-一個在自己電腦上跑的 **C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成兩條路線：
+一個在自己電腦上跑的 **C / C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成三條路線：
 
 | 路線 | 內容 |
 |---|---|
 | 📚 **資料結構** | `lessons/` 12 篇教學 + 複雜度考題、`problems/` 17 題（河內塔、vector、鏈結串列、stack/queue、雜湊表、heap、BST、圖、併查集……） |
 | 🔧 **C++ 深入** | `cpp/lessons/` 15 篇教學、`cpp/problems/` 14 題（運算式、敘述、函式、指標、RAII、類別、繼承與多型、ADT、模板、STL、字串 IO、例外、編譯模型、現代 C++） |
+| 🅲 **C 語言** | `c/lessons/` 13 篇教學、`c/problems/` 10 題（printf/scanf、指標、字串、malloc/free、struct、函式指標、檔案 IO、前置處理器、用 C 實作串列與雜湊表），用 `gcc -std=c11` 評測，多題會檢查記憶體洩漏 |
 
 - 🧪 **測資產生器**：每題都有 corner case + 小 / 中 / 大隨機測資，可以換 seed 重新產生
-- ⚖️ **評測**：編譯你的 C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
+- ⚖️ **評測**：編譯你的 C / C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
 - 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出反例）
-- 🌐 **網頁版**：瀏覽器裡看教學、寫 code、按一下就評測；上方切換兩條路線
+- 🌐 **網頁版**：瀏覽器裡看教學、寫 code、按一下就評測；上方切換三條路線
 
-只需要 `g++`（C++17）和 `python3`，**不用安裝任何套件**。
+只需要 `g++`（C++17）、`gcc`（C11，C 語言路線用）和 `python3`，**不用安裝任何套件**。
 
 ## 快速開始
 
@@ -29,6 +30,8 @@ python3 judge.py stress hanoi      # 對拍找反例
 python3 judge.py test hanoi --debug
 python3 judge.py run my.cpp in.txt # 執行任何 C++ 程式
 python3 judge.py test c7           # C++ 深入路線第 7 題（c07_fraction）
+python3 judge.py start cl3         # C 語言路線第 3 題：建立 workspace/cl03_pointer_ops.c
+python3 judge.py test cl3 --debug  # C 題目強烈建議用 --debug 抓記憶體錯誤
 ```
 
 詳細說明請看 [`lessons/00_how_to_use.md`](lessons/00_how_to_use.md)。
@@ -38,7 +41,7 @@ python3 judge.py test c7           # C++ 深入路線第 7 題（c07_fraction）
 可以直接在 Windows 上執行（指令裡的 `python3` 可能要改成 `python` 或 `py`），需要先安裝：
 
 - **Python 3**：從 python.org 安裝，安裝時勾選「Add Python to PATH」。
-- **g++**：例如安裝 [MSYS2](https://www.msys2.org/) 後執行 `pacman -S mingw-w64-ucrt-x86_64-gcc`，再把 `C:\msys64\ucrt64\bin` 加進 PATH。打開新的終端機輸入 `g++ --version` 看得到版本號就成功了。
+- **g++**：例如安裝 [MSYS2](https://www.msys2.org/) 後執行 `pacman -S mingw-w64-ucrt-x86_64-gcc`，再把 `C:\msys64\ucrt64\bin` 加進 PATH。打開新的終端機輸入 `g++ --version` 看得到版本號就成功了（同一個套件也包含 C 語言路線需要的 `gcc`）。
 
 和 Linux / Mac 的差別：
 - Windows 上沒有記憶體上限檢查（MLE 只能靠程式自己配置失敗才偵測得到）。
@@ -87,6 +90,21 @@ python3 judge.py test c7           # C++ 深入路線第 7 題（c07_fraction）
 | C13 | 安全的計算機 | 例外、強例外保證、溢位檢查 | ★★★ |
 | C14 | 智慧指標串列 | unique_ptr、解構的遞迴陷阱 | ★★★ |
 
+### 🅲 C 語言
+
+| # | 題目 | 主題 | 難度 |
+|---|---|---|---|
+| CL01 | 格式化輸入輸出 | printf / scanf 的格式 | ★☆☆ |
+| CL02 | 自己寫 string.h | `'\0'`、字串函式 | ★★☆ |
+| CL03 | 用指標操作陣列 | 指標算術、[begin, end) 區間 | ★★☆ |
+| CL04 | 動態陣列 | malloc / realloc / free、容量倍增 | ★★☆ |
+| CL05 | C 語言的鏈結串列 | 節點、`Node **`、記憶體洩漏 | ★★★ |
+| CL06 | 學生成績排名 | struct、qsort、bsearch | ★★☆ |
+| CL07 | 文字統計 | getchar 讀到 EOF、`<ctype.h>` | ★★☆ |
+| CL08 | 動態二維矩陣 | 指標的指標、矩陣乘法 | ★★★ |
+| CL09 | 函式指標與指令表 | 函式指標、回呼、查表分派 | ★★★ |
+| CL10 | 字串雜湊表 | 分離鏈結法、rehash、字串複製 | ★★★★ |
+
 ## 目錄結構
 
 ```
@@ -95,6 +113,8 @@ web/                     網頁版（server.py + index.html）
 lessons/                 資料結構教學
 cpp/lessons/             C++ 深入教學
 cpp/problems/            C++ 深入題目（結構同 problems/）
+c/lessons/               C 語言教學
+c/problems/              C 語言題目（結構同 problems/，但檔案是 template.c / solution.c）
 problems/<題目>/
     problem.md           題目敘述
     template.cpp         作答樣板

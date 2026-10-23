@@ -1,9 +1,10 @@
 # 00. 如何使用這個平台
 
-這是一個在自己電腦上跑的 **C++ 家教 + 線上評測（Online Judge）**，有兩條路線：
+這是一個在自己電腦上跑的 **C / C++ 家教 + 線上評測（Online Judge）**，有三條路線：
 
 - 📚 **資料結構**（這裡）：`lessons/` 和 `problems/`
 - 🔧 **C++ 深入**：`cpp/lessons/` 和 `cpp/problems/`，專門把 C++ 語言本身學扎實（指標、記憶體、類別、繼承、模板、例外……）。網頁版上方可以切換，從 `cpp/lessons/00_roadmap.md` 開始。
+- 🅲 **C 語言**：`c/lessons/` 和 `c/problems/`，用 C11 從 `printf`、指標、`malloc` / `free` 學到用 C 實作串列和雜湊表。題目用 `.c` 檔作答、`gcc` 編譯。從 `c/lessons/00_roadmap.md` 開始。
 
 建議：C++ 語法還不熟的話，先讀 C++ 深入的第 01 ~ 07 課，再回來做資料結構。
 你會在這裡：
@@ -15,6 +16,7 @@
 ## 需要的工具
 
 - `g++`（支援 C++17）
+- `gcc`（支援 C11，只有 C 語言路線需要；裝 g++ 時通常就一起裝好了）
 - `python3`（3.8 以上，不需要安裝任何套件）
 
 ## 方法一：網頁版（推薦）
@@ -45,7 +47,7 @@ python3 judge.py gen hanoi --seed 42  # 換一批隨機測資
 python3 judge.py run my.cpp input.txt # 單純編譯執行任何 C++ 檔案
 ```
 
-題目可以用編號（`1`）、名稱（`hanoi`）或全名（`01_hanoi`）指定；C++ 深入的題目用 `c1` ~ `c14`。
+題目可以用編號（`1`）、名稱（`hanoi`）或全名（`01_hanoi`）指定；C++ 深入的題目用 `c1` ~ `c14`，C 語言的題目用 `cl1` ~ `cl10`（例如 `python3 judge.py start cl3` 會建立 `workspace/cl03_pointer_ops.c`）。
 
 ## 評測結果代表什麼？
 
