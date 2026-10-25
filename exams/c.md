@@ -87,6 +87,47 @@ int main(void) {
 1. 台灣人口約 2300 萬，`int`（最大約 21 億）就夠。80 億超過 `int` 的範圍，要用 `long long`（最大約 9.2 × 10¹⁸）。印的時候用 `%lld`。
 2. `main` 的回傳值是給作業系統（或呼叫它的程式）看的 **結束碼**：0 代表成功，非 0 代表發生錯誤。評測系統、shell 腳本都靠它判斷程式有沒有正常結束。（C99 起 `main` 沒寫 `return` 時會自動回傳 0，但明確寫出來比較清楚。）
 
+??? 預測輸出
+```c
+#include <stdio.h>
+
+int main(void) {
+    printf("%+d %+d|%8.3f|%-6s|%%|%c\n", 5, -5, 3.14159, "ab", 65);
+    printf("%.2e|%g|%g\n", 1234.5, 0.0001, 100000000.0);
+    int x = 3.99;
+    double d = 7 / 2;
+    double e = (double)7 / 2;
+    printf("%d %.1f %.1f\n", x, d, e);
+    return 0;
+}
+```
+!!!
+```output
++5 -5|   3.142|ab    |%|A
+1.23e+03|0.0001|1e+08
+3 3.0 3.5
+```
+
+- `%+d` 一定印出正負號；`%8.3f` 寬度 8、小數 3 位（四捨五入成 3.142）；`%-6s` 靠左補到 6 格；`%%` 印出一個 `%`；`%c` 把 65 當成字元 `A`。
+- `%.2e` 是科學記號、小數 2 位；`%g` 自動選擇比較短的表示法，並去掉多餘的 0。
+- `int x = 3.99` 會 **截斷**（不是四捨五入）成 3。
+- `7 / 2` 兩邊都是 `int`，結果是 3，存進 `double` 才變成 3.0；要先把其中一邊轉成 `double`，才會做浮點數除法。
+
+??? 找錯
+下面的程式想讀入兩個整數並印出平均（要有小數），找出所有問題：
+
+```c
+int a, b;
+scanf("%d%d", &a, &b);
+double avg = (a + b) / 2;
+printf("%d\n", avg);
+```
+!!!
+1. `(a + b) / 2` 是 **整數除法**，小數部分已經被丟掉了，之後才轉成 `double`。應該寫 `(a + b) / 2.0`。
+2. `printf("%d", avg)`：`avg` 是 `double`，卻用 `%d` 印，型別不符是 **未定義行為**（通常印出亂七八糟的數字）。應該用 `%f`（例如 `%.2f`）。
+3. `a + b` 在兩個數都很大時可能 **溢位**，可以寫成 `((double)a + b) / 2`。
+4. 沒有檢查 `scanf` 的回傳值是否為 2。
+
 @@@ 02 | 運算子與控制流程
 
 ??? 預測輸出
@@ -173,6 +214,65 @@ if (x = 5) printf("five\n");
 !!!
 1. `=` 是指定，不是比較。`x = 5` 的值是 5（真），所以 **永遠** 印出 `five`，而且 `x` 被改成 5 了。應該寫 `x == 5`。用 `-Wall` 編譯會有 `suggest parentheses around assignment used as truth value` 警告。
 2. `&&` 是 **短路求值**，由左到右，左邊是假就不算右邊。前者在 `i == 0` 時不會執行除法，是安全的；後者會先算 `10 / i`，`i == 0` 時就是除以 0（未定義行為，通常程式直接當掉）。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+
+int main(void) {
+    int i, s = 0;
+    for (i = 0; i < 10; i += 3) s += i;
+    printf("%d %d\n", i, s);
+
+    int n = 0;
+    do { n++; } while (n < 0);
+    printf("%d\n", n);
+
+    int k = 5;
+    while (k-- > 0) printf("%d", k);
+    printf(" %d\n", k);
+    return 0;
+}
+```
+!!!
+```output
+12 18
+1
+43210 -1
+```
+
+- `for`：i 依序是 0、3、6、9 時執行迴圈本體（s = 18），i 變成 12 時條件不成立才離開，所以離開後 i 是 **12**。
+- `do-while` **至少執行一次**，條件在最後才檢查。
+- `k-- > 0`：先用舊值比較、再減 1。k = 5 時比較成立，進迴圈時已經是 4；最後一次比較 `0 > 0` 不成立，但 `--` 還是執行了，所以離開時 k 是 **-1**。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+
+int main(void) {
+    unsigned int x = 0xF0;
+    printf("%u %u %u %u\n", x >> 4, x & 0x3C, x | 0x0F, x ^ 0xFF);
+    printf("%d %d %d\n", 5 & 3, 5 | 3, 5 ^ 3);
+    printf("%u %d\n", ~0u, !5);
+    int a = 10;
+    a <<= 2;
+    a |= 1;
+    printf("%d\n", a);
+    return 0;
+}
+```
+!!!
+```output
+15 48 255 15
+1 7 6
+4294967295 0
+41
+```
+
+- `0xF0` = 1111 0000₂：右移 4 位是 1111₂ = 15；`& 0x3C`（0011 1100₂）= 0011 0000₂ = 48；`| 0x0F` = 1111 1111₂ = 255；`^ 0xFF` 把 8 個位元全部反轉 = 0000 1111₂ = 15。
+- 5 = 101₂、3 = 011₂：AND = 001₂、OR = 111₂、XOR = 110₂。
+- `~0u` 是 32 個 1；`!` 是 **邏輯** 非，非 0 的值都變成 0（不要和位元的 `~` 搞混）。
+- `a <<= 2` 是 a × 4 = 40，再 `|= 1` 把最低位設成 1 → 41。
 
 @@@ 03 | 函式與變數的生命
 
@@ -270,6 +370,52 @@ int main(void) {
    - **函式外面**（全域變數、函式）：限制 **連結性**，只有這個 `.c` 檔看得到，其他檔案用 `extern` 也拿不到。
    - **函式裡面**（區域變數）：改變 **生命週期**，變數存在整個程式執行期間，只初始化一次；但作用域仍然只在函式裡。
 
+??? 預測輸出
+```c
+#include <stdio.h>
+
+void f(int n) {
+    if (n == 0) return;
+    printf("%d ", n);
+    f(n - 1);
+    printf("%d ", n);
+}
+
+int sum_digits(int n) {
+    return n < 10 ? n : n % 10 + sum_digits(n / 10);
+}
+
+int main(void) {
+    f(3);
+    printf("\n%d\n", sum_digits(9875));
+    return 0;
+}
+```
+!!!
+```output
+3 2 1 1 2 3 
+29
+```
+
+- 每一層在 **遞迴之前** 印一次（往下走時：3 2 1），**遞迴回來之後** 再印一次（往回走時：1 2 3）。這就是呼叫堆疊「後進先出」的效果。
+- `sum_digits`：9875 → 5 + sum_digits(987) → 5 + 7 + sum_digits(98) → 5 + 7 + 8 + 9 = 29。
+
+??? 寫程式
+用遞迴寫出 `long long power(long long b, int e)`（`e ≥ 0`），要求遞迴深度是 O(log e)。說明為什麼比「`b * power(b, e - 1)`」快。
+!!!
+```c
+long long power(long long b, int e) {
+    if (e == 0) return 1;                 /* 終止條件 */
+    long long half = power(b, e / 2);     /* 只遞迴一次，結果存起來 */
+    if (e % 2 == 0) return half * half;
+    else return half * half * b;
+}
+```
+
+每次把指數 **減半**，遞迴深度和乘法次數都是 O(log e)。`b * power(b, e - 1)` 每次只減 1，要 e 層遞迴、e 次乘法。
+
+常見錯誤：寫成 `power(b, e / 2) * power(b, e / 2)`，同一個子問題算了兩次，又變回 O(e) 次呼叫。
+
 @@@ 04 | 陣列
 
 ??? 預測輸出
@@ -344,6 +490,55 @@ int *make(int n) {
 用 VLA（`int a[n];`，`n` 是執行時才知道的值）有什麼風險？什麼情況應該改用 `malloc`？
 !!!
 VLA 配置在 **堆疊** 上，堆疊通常只有幾 MB（Linux 約 8 MB、Windows 約 1 MB）。`n` 很大（例如 10⁶ 個 `int` = 4 MB 以上）時，會 **堆疊溢位**，而且沒有任何辦法偵測失敗，程式直接當掉。另外 C11 起 VLA 是選配功能，有些編譯器（例如 MSVC）不支援。大小可能很大、或來自使用者輸入時，應該用 `malloc`（失敗會回傳 `NULL`，可以檢查）。
+
+??? 預測輸出
+下面的程式對陣列做 **一輪** 氣泡排序（相鄰兩個比較，前面比較大就交換），預測輸出：
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    int a[5] = {5, 1, 4, 2, 3};
+    int swaps = 0;
+    for (int i = 0; i + 1 < 5; i++) {
+        if (a[i] > a[i + 1]) {
+            int t = a[i]; a[i] = a[i + 1]; a[i + 1] = t;
+            swaps++;
+        }
+    }
+    for (int i = 0; i < 5; i++) printf("%d ", a[i]);
+    printf("| %d\n", swaps);
+    return 0;
+}
+```
+!!!
+```output
+1 4 2 3 5 | 4
+```
+
+5 在每一次比較都比右邊大，一路被交換到最後面：
+- 比較 5、1 → 交換：`1 5 4 2 3`
+- 比較 5、4 → 交換：`1 4 5 2 3`
+- 比較 5、2 → 交換：`1 4 2 5 3`
+- 比較 5、3 → 交換：`1 4 2 3 5`
+
+一輪之後 **最大的元素一定到了最後面**，n 個元素最多 n − 1 輪就排好了，O(n²)。迴圈條件寫成 `i + 1 < 5`，避免存取 `a[5]` 越界。
+
+??? 寫程式
+寫一個函式，計算 `rows × 4` 的二維陣列每一列的總和，存到 `sums` 陣列。函式參數要怎麼宣告？為什麼第二維的大小一定要寫出來？
+!!!
+```c
+void row_sums(int m[][4], int rows, int sums[]) {
+    for (int i = 0; i < rows; i++) {
+        sums[i] = 0;
+        for (int j = 0; j < 4; j++) sums[i] += m[i][j];
+    }
+}
+```
+
+（C99 也可以用 VLA 參數：`void row_sums(int rows, int cols, int m[rows][cols], int sums[])`，注意 `rows`、`cols` 要寫在 `m` 前面。）
+
+二維陣列傳給函式時會退化成「指向第一列的指標」，型別是 `int (*)[4]`。編譯器要計算 `m[i][j]` 的位址 `m + i * 4 + j`，必須知道 **一列有幾個元素**；第一維（列數）不影響位址計算，所以可以省略。
 
 @@@ 05 | 指標
 
@@ -427,6 +622,51 @@ if (alloc_array(&arr, 100)) {
    - `a` 不能被指定（`a = p;` 是錯誤），`p` 可以指向別的地方。
    - `&a` 的型別是「指向整個陣列的指標」`int (*)[N]`，`&p` 是 `int **`。
 2. `void *` 是「指向任何型別」的通用指標，任何物件指標都可以轉成 `void *` 再轉回來。因為不知道指向的資料是什麼型別、有多大，所以不能解參考，也不能做指標算術。要先轉回原本的型別：`*(int *)vp`。`malloc` 回傳 `void *`、`qsort` 的比較函式參數是 `const void *`，都是這個原因。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+
+int main(void) {
+    int x = 1, y = 2;
+    int *p = &x;
+    int **pp = &p;
+    **pp = 10;
+    *pp = &y;
+    **pp += 5;
+    printf("%d %d %d\n", x, y, *p);
+
+    int arr[] = {1, 2, 3, 4, 5};
+    int *b = arr, *e = arr + 5;
+    int sum = 0;
+    while (b != e) sum += *b++;
+    printf("%d %d\n", sum, (int)(e - arr));
+    return 0;
+}
+```
+!!!
+```output
+10 7 7
+15 5
+```
+
+- `**pp = 10`：`*pp` 就是 `p`，`**pp` 就是 `*p`，也就是 x → x = 10。
+- `*pp = &y`：修改的是 `p` 本身，現在 `p` 指向 y。
+- `**pp += 5`：y = 7，`*p` 也是 7。
+- `[b, e)` 半開區間的走訪：`e` 指向最後一個元素的 **下一個位置**，不能解參考，但可以拿來比較。`*b++` 先取值、再讓 b 前進。
+
+??? 找錯
+下面三段程式各有什麼問題？會發生什麼事？
+
+```c
+/* (a) */ int *p;  *p = 5;
+/* (b) */ int *q = NULL;  if (*q == 0) printf("zero\n");
+/* (c) */ int *r = malloc(sizeof *r);  free(r);  if (r != NULL) *r = 3;
+```
+!!!
+- (a) **野指標 (wild pointer)**：`p` 沒有初始化，裡面是隨機的位址，寫入它是未定義行為（可能當掉，也可能悄悄改壞別的資料）。指標宣告時就要初始化（`= NULL` 或一個有效的位址）。
+- (b) **解參考空指標**：未定義行為，通常是 segmentation fault。使用前要先檢查 `q != NULL`。
+- (c) **懸空指標**：`free(r)` 不會把 `r` 設成 NULL，`r` 還是舊的位址，所以 `r != NULL` 檢查 **擋不住**，寫入就是 use-after-free。好習慣是 `free(r); r = NULL;`。
 
 @@@ 06 | 字串
 
@@ -512,6 +752,58 @@ snprintf(dst, sizeof dst, "%s", src);     /* 一定會補 '\0'，太長就截斷
 
 或者用 `strncpy` 之後手動補上：`dst[n - 1] = '\0';`。
 
+??? 預測輸出
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void) {
+    const char *s = "banana";
+    printf("%td %td\n", strchr(s, 'n') - s, strrchr(s, 'a') - s);
+    printf("%s\n", strstr(s, "nan"));
+    printf("%d %d\n", strncmp("apple", "apply", 4), atoi("123abc"));
+    char buf[20];
+    snprintf(buf, sizeof buf, "%s-%03d", "id", 7);
+    printf("%s %zu\n", buf, strlen(buf));
+    char small[5];
+    int need = snprintf(small, sizeof small, "%s", "hello world");
+    printf("%s %d\n", small, need);
+    return 0;
+}
+```
+!!!
+```output
+2 5
+nana
+0 123
+id-007 6
+hell 11
+```
+
+- `strchr` 找 **第一個**、`strrchr` 找 **最後一個**，回傳指標，減掉開頭得到索引。
+- `strstr` 回傳子字串第一次出現的位置，從那裡印到結尾。
+- `strncmp` 只比前 4 個字元（"appl" 相同 → 0）；`atoi` 讀到不是數字的字元就停。
+- `%03d` 寬度 3、補 0。
+- `snprintf` **最多寫 size − 1 個字元並補上 `'\0'`**，不會溢位；回傳值是「如果空間足夠會寫幾個字元」（11），比 size 大就代表被截斷了。
+
+??? 寫程式
+不使用 `<string.h>`，寫出 `int my_strcmp(const char *a, const char *b)`：行為和 `strcmp` 一樣（a 比較小回傳負數、相等回傳 0、比較大回傳正數）。為什麼比較字元時要轉成 `unsigned char`？
+!!!
+```c
+int my_strcmp(const char *a, const char *b) {
+    while (*a != '\0' && *a == *b) {
+        a++;
+        b++;
+    }
+    return (unsigned char)*a - (unsigned char)*b;
+}
+```
+
+- 一直往前走，直到遇到不同的字元，或其中一個字串結束（較短的字串結尾的 `'\0'` 是 0，比任何字元都小，所以 `"app"` < `"apple"`）。
+- `strcmp` 規定以 `unsigned char` 比較。`char` 可能是有號的，`0xE4`（例如 UTF-8 中文的第一個位元組）會變成負數，結果就和標準不一致。
+- 兩個 `unsigned char` 相減會先提升成 `int`，不會溢位。
+
 @@@ 07 | 動態記憶體
 
 ??? 找錯
@@ -590,6 +882,52 @@ void mat_free(double **m) {
 ```
 
 好處：資料連續（快取友善）、只要 2 次配置和 2 次釋放。注意 `rows` 是 0 時 `m[0]` 不能存取，實務上要另外處理。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int *a = calloc(3, sizeof *a);
+    a[1] = 5;
+    int *t = realloc(a, 5 * sizeof *a);
+    if (t == NULL) { free(a); return 1; }
+    a = t;
+    a[3] = a[4] = 9;
+    for (int i = 0; i < 5; i++) printf("%d ", a[i]);
+    printf("\n");
+    t = realloc(a, 2 * sizeof *a);
+    if (t) a = t;
+    printf("%d %d\n", a[0], a[1]);
+    free(a);
+    free(NULL);
+    printf("done\n");
+    return 0;
+}
+```
+!!!
+```output
+0 5 0 9 9 
+0 5
+done
+```
+
+- `calloc` 把配置的空間 **清成 0**。
+- `realloc` 擴大時會 **保留原本的資料**（前 3 個元素），新增的空間內容未定（這裡馬上被設成 9）。
+- `realloc` 縮小時只保留前面的元素。
+- `free(NULL)` 是合法的，什麼都不做。
+
+??? 觀念
+1. 下面兩個函式，哪一個是正確的？為什麼？
+```c
+int *make1(int n) { int a[100]; for (int i = 0; i < n; i++) a[i] = i; return a; }
+int *make2(int n) { int *a = malloc(n * sizeof *a); for (int i = 0; a && i < n; i++) a[i] = i; return a; }
+```
+2. `make2` 的說明文件應該寫清楚什麼？
+!!!
+1. **`make2` 正確**。`make1` 的 `a` 是 **區域陣列**，放在堆疊上，函式結束就失效了，回傳的是懸空指標。`make2` 的記憶體在 **堆積** 上，會一直存在到有人呼叫 `free` 為止，回傳它的位址是合法的（而且 `make2` 也沒有 100 個元素的上限）。
+2. 要寫清楚 **所有權**：「回傳的陣列由呼叫者負責 `free`」，以及「配置失敗時回傳 NULL」。C 沒有自動釋放，每塊記憶體都要有一個明確的擁有者。
 
 @@@ 08 | struct、union、enum
 
@@ -679,6 +1017,58 @@ union 的所有成員 **共用同一塊記憶體**，union 自己不記得最後
 !!!
 1. 左邊是 **結構本身** 用 `.`，左邊是 **指向結構的指標** 用 `->`。`p->x` 等於 `(*p).x`。`*p.x` 因為 `.` 的優先順序比 `*` 高，會被解讀成 `*(p.x)`，而 `p` 是指標，沒有 `.x` 成員，編譯錯誤。
 2. 傳值會 **複製整個結構**，結構很大時很浪費時間和堆疊空間；傳指標只複製 8 bytes。加上 `const` 是告訴呼叫者「我只讀、不修改」，編譯器也會幫忙檢查。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+typedef struct { char name[8]; int age; } P;
+int main(void) {
+    P ps[] = {{"amy", 20}, {"bob", 31}, {"cat", 25}};
+    P *p = ps;
+    p++;
+    printf("%s %d\n", p->name, (p + 1)->age);
+    printf("%zu\n", sizeof ps / sizeof ps[0]);
+    printf("%c\n", ps[2].name[0] - 32);
+    P q = ps[0];
+    q.age = 99;
+    p = &ps[0];
+    p->age += 1;
+    printf("%d %d\n", q.age, ps[0].age);
+    return 0;
+}
+```
+!!!
+```output
+bob 25
+3
+C
+99 21
+```
+
+- `p++` 讓指標前進 **一整個結構**（`sizeof(P)` 個 byte），指向 `ps[1]`，所以 `p->name` 是 bob；`(p + 1)` 指向 `ps[2]`，年齡是 25。
+- `sizeof ps / sizeof ps[0]` 是陣列的元素個數。
+- 小寫字母減 32 就是對應的大寫字母（ASCII 中 `'c'` 是 99、`'C'` 是 67）。實務上用 `toupper` 比較清楚。
+- `P q = ps[0]` 是 **複製**，改 `q` 不影響 `ps[0]`；透過指標 `p->age += 1` 才會改到 `ps[0]` 本身。
+
+??? 寫程式
+檔案權限用位元旗標表示：讀 = 4、寫 = 2、執行 = 1。用 `enum` 定義這三個旗標，並寫出 `void perm_str(int perm, char out[4])`，把權限轉成 `"rwx"` 這樣的字串，沒有的權限用 `-`（例如 5 → `"r-x"`）。
+!!!
+```c
+enum { PERM_READ = 4, PERM_WRITE = 2, PERM_EXEC = 1 };
+
+void perm_str(int perm, char out[4]) {
+    out[0] = (perm & PERM_READ)  ? 'r' : '-';
+    out[1] = (perm & PERM_WRITE) ? 'w' : '-';
+    out[2] = (perm & PERM_EXEC)  ? 'x' : '-';
+    out[3] = '\0';
+}
+
+/* 組合權限：PERM_READ | PERM_EXEC 就是 5 */
+```
+
+- 每個旗標佔 **一個位元**（4 = 100₂、2 = 010₂、1 = 001₂），所以可以用 `|` 組合、用 `&` 檢查，互不干擾。
+- 用 `enum` 給這些數字取名字，比在程式裡到處寫 4、2、1（魔術數字）清楚得多。
+- `out` 要有 4 格：3 個字元加上結尾的 `'\0'`。
 
 @@@ 09 | 函式指標
 
@@ -779,6 +1169,57 @@ int cmp(const void *a, const void *b) {
 
 （如果陣列是 `char words[N][20]` 這種二維字元陣列，元素本身就是字元，`strcmp(a, b)` 反而是對的。）
 
+??? 預測輸出
+C 沒有 lambda，回呼函式需要額外資料時，用一個 `void *ctx` 參數轉交：
+
+```c
+#include <stdio.h>
+void for_each(const int *a, int n, void (*f)(int, void *), void *ctx) {
+    for (int i = 0; i < n; i++) f(a[i], ctx);
+}
+void find_max(int v, void *ctx) { int *m = ctx; if (v > *m) *m = v; }
+void count_even(int v, void *ctx) { if (v % 2 == 0) ++*(int *)ctx; }
+typedef struct { long long sum; int n; } Avg;
+void add_avg(int v, void *ctx) { Avg *s = ctx; s->sum += v; s->n++; }
+int main(void) {
+    int a[] = {3, 8, -2, 7, 10};
+    int mx = a[0], ev = 0;
+    Avg s = {0, 0};
+    for_each(a, 5, find_max, &mx);
+    for_each(a, 5, count_even, &ev);
+    for_each(a, 5, add_avg, &s);
+    printf("%d %d %.1f\n", mx, ev, (double)s.sum / s.n);
+    return 0;
+}
+```
+!!!
+```output
+10 3 5.2
+```
+
+- `find_max`：`ctx` 指向目前的最大值（初始值用第一個元素，不要用 0，陣列可能全是負數）→ 10。
+- `count_even`：8、-2、10 是偶數（-2 % 2 是 0）→ 3。
+- `add_avg`：需要好幾個資料時，包成一個 `struct` 再傳它的位址；總和 26、個數 5，平均 5.2。
+
+`for_each` 完全不知道 `ctx` 是什麼，只負責原封不動地轉交；回呼函式自己知道該把它轉回什麼型別。這是 C 函式庫最常見的設計（`qsort_r`、`pthread_create`、GUI 的事件回呼）。
+
+??? 寫程式
+有一個 **依 `id` 排序好** 的陣列 `Item items[n]`（`typedef struct { int id; char name[20]; } Item;`）。用 `bsearch` 寫出 `Item *find_item(Item *items, int n, int id)`，找不到回傳 NULL。比較函式的兩個參數各是什麼型別？
+!!!
+```c
+int cmp_key_item(const void *key, const void *elem) {
+    int k = *(const int *)key;                 /* 第一個參數是 key */
+    const Item *it = elem;                     /* 第二個參數是陣列元素 */
+    return (k > it->id) - (k < it->id);
+}
+
+Item *find_item(Item *items, int n, int id) {
+    return bsearch(&id, items, n, sizeof items[0], cmp_key_item);
+}
+```
+
+`bsearch` 呼叫比較函式時，**第一個參數一定是 key 的位址**，第二個是陣列元素的位址，兩者的型別 **可以不同**：這裡 key 是 `int *`、元素是 `Item *`。這樣就不用為了搜尋特地建立一個假的 `Item`。陣列必須是用「同樣的順序」（依 `id` 遞增）排序過的，否則結果沒有意義。
+
 @@@ 10 | 檔案與輸入輸出
 
 ??? 觀念
@@ -839,6 +1280,64 @@ int main(void) {
 1. `"r"`：從頭讀；`"w"`：**清空** 原本的內容再寫；`"a"`：寫在檔案最後面。（檔案不存在時，`"r"` 會失敗回傳 `NULL`，另外兩個會建立新檔。）
 2. `stdout` 常常被重新導向到檔案或另一個程式（評測系統就是拿 `stdout` 跟答案比對），錯誤訊息混進去會破壞輸出。`stderr` 是獨立的串流，預設還是顯示在螢幕上。
 3. 輸出到檔案時 `stdout` 是 **全緩衝** 的，資料還在緩衝區裡，程式當掉就來不及寫出去。除錯訊息寫到 `stderr`（不緩衝），或必要時呼叫 `fflush(stdout)`。
+
+??? 預測輸出
+下面的程式用第 10 課 `wc` 的狀態機，統計一個字串的行數、單字數、字元數：
+
+```c
+#include <ctype.h>
+#include <stdio.h>
+int main(void) {
+    const char *text = "  hello  world\tfoo \n bar\n\nend";
+    long chars = 0, lines = 0, words = 0;
+    int in_word = 0;
+    for (const char *p = text; *p; p++) {
+        int c = (unsigned char)*p;
+        chars++;
+        if (c == '\n') lines++;
+        if (isspace(c)) in_word = 0;
+        else if (!in_word) { in_word = 1; words++; }
+    }
+    printf("%ld %ld %ld\n", lines, words, chars);
+    return 0;
+}
+```
+!!!
+```output
+3 5 29
+```
+
+- **行數** 是 `'\n'` 的個數：3 個（中間有一個空行，最後的 `end` 後面沒有換行，不算）。
+- **單字** 是連續的非空白字元：hello、world、foo、bar、end，共 5 個。連續的空白、tab、換行都只是「離開單字」，不會多算。
+- **字元數** 包含所有空白和換行：29。
+
+讀檔版本只要把 `for` 迴圈改成 `while ((c = getchar()) != EOF)`，邏輯完全一樣。
+
+??? 寫程式
+寫出 `int sum_file(const char *path, long long *sum)`：開啟文字檔，讀出所有整數加總，透過 `sum` 回傳結果。檔案打不開回傳 -1，檔案裡有不是整數的內容回傳 -2，成功回傳讀到的整數個數。不能有資源洩漏。
+!!!
+```c
+int sum_file(const char *path, long long *sum) {
+    FILE *fp = fopen(path, "r");
+    if (fp == NULL) return -1;               /* 打不開：直接回傳，沒有東西要關 */
+    long long total = 0, x;
+    int count = 0, r;
+    while ((r = fscanf(fp, "%lld", &x)) == 1) {
+        total += x;
+        count++;
+    }
+    int bad = (r != EOF);                    /* 迴圈因為格式錯誤（回傳 0）而停止 */
+    fclose(fp);                              /* 每一條路徑都要關檔 */
+    if (bad) return -2;
+    *sum = total;
+    return count;
+}
+```
+
+重點：
+- `fopen` 一定要檢查 `NULL`。
+- 用 **`fscanf` 的回傳值** 控制迴圈（不要用 `feof`）：回傳 1 代表讀到一個整數；回傳 `EOF` 代表正常讀完；回傳 0 代表遇到不是整數的內容。
+- 不管成功或失敗，打開的檔案都要 `fclose`；先記下結果、關檔，再回傳。
 
 @@@ 11 | 前置處理器與多檔案程式
 
@@ -932,6 +1431,77 @@ if (a > b) SWAP(int, a, b); else printf("ok\n");
 ```
 
 如果只用 `{ ... }` 包起來，`if (a > b) { ... }; else ...` 裡那個分號會結束 `if` 敘述，後面的 `else` 找不到對應的 `if`，編譯錯誤。`do { ... } while (0)` 是 **一個完整的敘述**，後面剛好需要一個分號，用起來就像函式呼叫一樣。迴圈只執行一次，編譯器會把它最佳化掉。
+
+??? 預測輸出
+```c
+#include <stdio.h>
+#define DEBUG 1
+#define LOG(x) printf("log: %s = %d\n", #x, (x))
+#define A 2
+#define B A + 1
+#define B2 (A + 1)
+int main(void) {
+#if DEBUG
+    LOG(2 * 3);
+#endif
+#ifdef UNDEFINED_THING
+    printf("yes\n");
+#else
+    printf("no\n");
+#endif
+    printf("%d %d\n", B * 2, B2 * 2);
+    return 0;
+}
+```
+!!!
+```output
+log: 2 * 3 = 6
+no
+4 6
+```
+
+- `#x` 把參數 **原樣** 變成字串 `"2 * 3"`，`(x)` 則是計算出來的值。
+- `UNDEFINED_THING` 沒有定義，走 `#else`。
+- `B * 2` 展開成 `2 + 1 * 2` = 4；`B2` 的定義有括號，`(2 + 1) * 2` = 6。**巨集的內容如果是運算式，整個都要加括號。**
+
+??? 觀念
+你要寫一個計數器模組，讓 `main.c` 可以呼叫 `counter_add(int)` 和 `counter_get()`，計數器的值 **不能** 被其他檔案直接修改，模組裡還有一個只給自己用的 `check_range()` 函式。寫出 `counter.h` 和 `counter.c` 的內容（函式本體可以簡單寫），以及編譯指令。
+!!!
+```c
+/* counter.h：只放公開的宣告 */
+#ifndef COUNTER_H
+#define COUNTER_H
+
+void counter_add(int x);
+int counter_get(void);
+
+#endif
+```
+
+```c
+/* counter.c */
+#include "counter.h"
+
+static int value = 0;                    /* static：其他檔案看不到，無法直接修改 */
+
+static int check_range(int x) {          /* static：只有這個檔案能呼叫 */
+    return x >= -1000 && x <= 1000;
+}
+
+void counter_add(int x) {
+    if (check_range(x)) value += x;
+}
+
+int counter_get(void) {
+    return value;
+}
+```
+
+編譯：`gcc -std=c11 -Wall main.c counter.c -o app`（`.h` 不用寫在指令裡）。
+
+- 計數器的值放在 `.c` 檔、加上 `static`，就只能透過公開的函式存取（封裝）。
+- 標頭檔要有 **引入防護**，而且只放宣告，不放變數或函式的定義。
+- 函式名稱加上模組前綴 `counter_`，避免和其他檔案的函式撞名（C 沒有命名空間）。
 
 @@@ 12 | 用 C 實作資料結構
 
@@ -1060,3 +1630,41 @@ int main(void) {
 - (g) **是**：`1` 是有號 `int`，左移到符號位元會溢位（應該寫 `1u << 31`）。
 
 抓這些錯誤的工具：`gcc -Wall -Wextra` 的警告，以及執行時的 `-fsanitize=address,undefined`（本平台的 `--debug`）。
+
+??? 手動模擬
+雜湊表有 8 個桶子，`h(k) = k % 8`，用分離鏈結法，**新元素加在串列的最前面**。
+
+1. 依序插入 3、11、19、4、12，每個桶子的串列長什麼樣子？
+2. 用第 12 課的 `Node **pp` 技巧刪除 11：`pp` 一開始指向哪裡、最後停在哪裡？哪一個指標被改掉了？
+3. 再插入 27，桶子 3 變成什麼樣子？
+!!!
+1. 3、11、19 都落在桶子 3，4、12 落在桶子 4。每次加在最前面：
+   - 桶子 3：`19 → 11 → 3`
+   - 桶子 4：`12 → 4`
+2. `pp` 一開始指向 **`buckets[3]` 這個指標本身**。`*pp` 是 19，不是要刪的，`pp` 前進到 **19 這個節點的 `next` 欄位**；這時 `*pp` 是 11，找到了。執行 `*pp = dead->next`，**被改掉的是 19 的 `next`**，改成指向 3，然後 `free` 掉 11。結果：`19 → 3`。（如果刪的是 19，被改掉的就是 `buckets[3]` 本身，程式完全一樣，不用特別處理。）
+3. 27 % 8 = 3，加在最前面：`27 → 19 → 3`。
+
+??? 寫程式
+為一個 **不透明** 的整數佇列寫出 `queue.h`：使用者只能透過函式建立、加入、取出、查詢是否為空、釋放，看不到內部的表示方式。取出空佇列時要讓呼叫者知道失敗。
+!!!
+```c
+#ifndef QUEUE_H
+#define QUEUE_H
+
+#include <stdbool.h>
+
+typedef struct Queue Queue;            /* 不完整型別：使用者不知道內容 */
+
+Queue *queue_new(void);                /* 失敗回傳 NULL */
+void   queue_free(Queue *q);           /* q 可以是 NULL */
+bool   queue_push(Queue *q, int x);    /* 記憶體不足時回傳 false */
+bool   queue_pop(Queue *q, int *out);  /* 空的時候回傳 false，不修改 *out */
+bool   queue_empty(const Queue *q);
+
+#endif
+```
+
+- `struct Queue` 的內容寫在 `queue.c` 裡（可以是環狀陣列或串列），以後換實作，使用者的程式不用改。
+- 使用者只能拿到 `Queue *`，所以一定要用 `queue_new` / `queue_free` 成對地建立和釋放。
+- C 沒有例外，失敗用 **回傳值** 表示；取出的值透過指標參數交給呼叫者。
+- 只讀取的函式參數用 `const Queue *`。

@@ -112,6 +112,61 @@ int main() {
 - 內層的 `x` 遮蔽了外層；`::x` 指的是 **全域** 的 `x`。
 - `static` 區域變數只初始化一次，呼叫之間保留值：100、101、102。`id++` 回傳舊值，所以第三次回傳 102。
 
+??? 預測輸出
+```cpp
+#include <cstdint>
+#include <iostream>
+using namespace std;
+
+int main() {
+    unsigned char a = 200, b = 100;
+    auto s = a + b;
+    unsigned char t = a + b;
+    cout << s << " " << (int)t << " " << sizeof(s) << "\n";
+    const int ci = 5;
+    auto x = ci;
+    x = 7;
+    cout << x << "\n";
+    int i = -1;
+    size_t z = i;
+    cout << (z == SIZE_MAX) << "\n";
+    return 0;
+}
+```
+!!!
+```output
+300 44 4
+7
+1
+```
+
+- **整數提升**：`unsigned char`、`short` 參與運算時會先被提升成 `int`，所以 `a + b` 的型別是 `int`，值是 300，不會溢位；`auto s` 推導成 `int`（4 bytes）。
+- 存回 `unsigned char` 時才會截斷：300 − 256 = 44。
+- `auto` 會 **丟掉頂層的 `const`**：`ci` 是 `const int`，`auto x = ci` 得到的是可以修改的 `int`。要保留就寫 `const auto`。
+- -1 轉成無號的 `size_t` 會變成它的最大值 `SIZE_MAX`。
+
+??? 觀念
+說明下面每個變數的 **作用域** 和 **生命週期**（什麼時候建立、什麼時候銷毀），並指出哪一行有問題：
+
+```cpp
+int g = 1;                         // (1)
+int* make() {
+    static int s = 2;              // (2)
+    int local = 3;                 // (3)
+    int* h = new int(4);           // (4)
+    return &local;                 // (5)
+}
+```
+!!!
+| 變數 | 作用域 | 生命週期 |
+|---|---|---|
+| (1) `g` | 整個檔案（其他檔案用 `extern` 也看得到） | **靜態**：程式開始前建立，程式結束後銷毀 |
+| (2) `s` | 只在 `make` 裡 | **靜態**：第一次執行到這一行時初始化，一直存在到程式結束 |
+| (3) `local` | 只在 `make` 裡 | **自動**：每次呼叫時建立，函式結束時銷毀 |
+| (4) `h` 指向的 `int` | （指標 `h` 本身是自動的） | **動態**：`new` 時建立，直到 `delete` 才銷毀 |
+
+**(5) 有問題**：回傳區域變數 `local` 的位址，函式結束後 `local` 就不存在了，回傳的是 **懸空指標**。而且 (4) 配置的記憶體沒有被回傳也沒有 `delete`，**洩漏**了。回傳 `&s` 或 `h` 都是合法的（後者要由呼叫者 `delete`）。
+
 @@@ 02 | 運算式
 
 ??? 預測輸出
@@ -210,6 +265,67 @@ int main() {
    ```
 
    `INT_MAX - b`（b > 0 時）和 `INT_MIN - b`（b < 0 時）都不會溢位。或者用更大的型別：`(long long)a + b` 再和範圍比較；GCC 也有 `__builtin_add_overflow`。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int arr[] = {10, 20, 30};
+    int* p = arr;
+    int v = *p++;
+    cout << v << " " << *p << "\n";
+    int x = 5;
+    int y = (x++, x * 2);
+    cout << x << " " << y << "\n";
+    int a = 1, b = 2, c = 3;
+    cout << (a > b ? a : b > c ? b : c) << "\n";
+    cout << (7 >> 1) << " " << (-7 >> 1) << " " << (5 << 2) << "\n";
+    float f = 16777217;
+    cout << (long long)f << " " << (0.1f == 0.1) << " " << (0.5f == 0.5) << "\n";
+    double d = 1e16;
+    cout << (long long)(d + 1) - (long long)d << "\n";
+    return 0;
+}
+```
+!!!
+```output
+10 20
+6 12
+3
+3 -4 20
+16777216 0 1
+0
+```
+
+- `*p++`：後置 `++` 優先於 `*`，但用的是 **舊的** p，所以 v 是 10，之後 p 指向 20。
+- **逗號運算子**：從左到右計算，結果是最右邊的值：`x++` 之後 x = 6，再算 `x * 2` = 12。
+- 條件運算子是 **右結合**：`a > b ? a : (b > c ? b : c)`，1 > 2 為假，2 > 3 為假，結果是 c = 3。
+- 對負數右移在 GCC 上是 **算術右移**（保留符號），-7 >> 1 = -4（向負無限大取整，和 `/ 2` 的 -3 不同）。
+- `float` 只有 24 位元的有效數字，16777217（2²⁴ + 1）存不下，變成 16777216。
+- `0.1f` 和 `0.1` 都不能精確表示，而且 float 和 double 的近似值不同，所以不相等；0.5 是 2 的冪次，可以精確表示，兩者相等。
+- `double` 的有效數字約 15 ~ 16 位，10¹⁶ + 1 無法表示，結果還是 10¹⁶，差是 0。
+
+??? 寫程式
+寫一個函式 `bool nearly_equal(double a, double b)` 判斷兩個浮點數是否「相等」。為什麼只用固定的 `fabs(a - b) < 1e-9` 不夠好？
+!!!
+```cpp
+#include <algorithm>
+#include <cmath>
+
+bool nearly_equal(double a, double b, double rel = 1e-9, double abs_eps = 1e-12) {
+    double diff = std::fabs(a - b);
+    if (diff <= abs_eps) return true;                        // 兩個都很接近 0 時
+    return diff <= rel * std::max(std::fabs(a), std::fabs(b)); // 相對誤差
+}
+```
+
+固定的絕對誤差 1e-9 只適合「數值大小在 1 左右」的情況：
+- 數值很大時（例如 1e12），double 本身的精度就只有大約 1e-4，兩個「應該相等」的數可能差了 1e-4，絕對誤差的判斷永遠不會成立。
+- 數值很小時（例如 1e-12），兩個完全不同的數相差也小於 1e-9，會被誤判成相等。
+
+所以要用 **相對誤差**（差除以數值的大小），再加上一個很小的絕對誤差處理接近 0 的情況。
 
 @@@ 03 | 敘述與控制流程
 
@@ -311,6 +427,66 @@ for (auto it = v.begin(); it != v.end(); it++)
    - 用 lambda 包起來立即呼叫，裡面 `return`。
 2. `it` 的 **作用域只在這個 `if`（和它的 `else`）裡面**，不會汙染外面的作用域，也不會在後面被誤用。同時把「宣告」和「條件」寫在一起，意圖更清楚。
 
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    for (int i = 0; i < 4; i++) {
+        switch (i) {
+            case 1: continue;
+            case 3: break;
+            default: cout << "d";
+        }
+        cout << i;
+    }
+    cout << "\n";
+    int cnt = 0;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++) {
+            if (j > i) break;
+            cnt++;
+        }
+    cout << cnt << "\n";
+    return 0;
+}
+```
+!!!
+```output
+d0d23
+10
+```
+
+- 在 `switch` 裡，`continue` 作用在 **外層的迴圈**（`switch` 不是迴圈），所以 i = 1 時直接進入下一輪，不會印出 1。
+- `break` 只跳出 **`switch`**，不會跳出迴圈：i = 3 時跳出 switch 之後，還是會執行 `cout << i`。
+- i = 0、2 走 `default`，先印 `d` 再印數字。
+- 內層迴圈在 j > i 時 `break`，只離開 **內層**：第 i 輪數了 i + 1 次，共 1 + 2 + 3 + 4 = 10。
+
+??? 觀念
+插入排序的程式如下。寫出外層迴圈的 **迴圈不變量**，並用它說明程式為什麼是正確的。
+
+```cpp
+void insertion_sort(vector<int>& a) {
+    for (int i = 1; i < (int)a.size(); i++) {
+        int key = a[i], j = i - 1;
+        while (j >= 0 && a[j] > key) {
+            a[j + 1] = a[j];
+            j--;
+        }
+        a[j + 1] = key;
+    }
+}
+```
+!!!
+**不變量**：每一輪外層迴圈 **開始時**，`a[0..i-1]` 是原本前 i 個元素 **排好序** 的結果。
+
+- **初始**：i = 1 時，`a[0..0]` 只有一個元素，一定是排好的。
+- **維持**：這一輪把 `a[i]`（key）插入前面排好的部分：比 key 大的元素依序往右移一格，key 放進空出來的位置。結束時 `a[0..i]` 是排好的，i 加 1 後不變量仍然成立。
+- **結束**：迴圈在 i = n 時結束，此時不變量說 `a[0..n-1]`（整個陣列）都排好了。
+
+用不變量思考，可以確定程式在每一個邊界情況都正確（空陣列、一個元素、已經排好、完全相反），也能幫助找到 off-by-one 的錯誤（例如寫成 `a[j] = key` 就錯了）。
+
 @@@ 04 | 函式
 
 ??? 預測輸出
@@ -411,6 +587,70 @@ sort(v.begin(), v.end(), [](int a, int b) { return a <= b; });
 `sort` 要求比較函式是 **嚴格弱序 (strict weak ordering)**，其中一條是 **非自反性**：`comp(a, a)` 必須是 `false`。`a <= b` 在 `a == b` 時回傳 `true`，違反規則，是 **未定義行為**：有很多相同元素時，`sort` 內部的迴圈可能跑出陣列範圍而當掉。
 
 改成 `a < b`（遞減就用 `a > b`）。多個條件時，「相等」一定要回傳 `false`。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+void inc(int& a, int b = 1) { a += b; }
+int counter() { static int c = 0; return ++c; }
+
+int main() {
+    int x = 0;
+    inc(x);
+    inc(x, 5);
+    counter();
+    counter();
+    cout << x << " " << counter() << "\n";
+    auto fact = [](auto self, int n) -> long long { return n <= 1 ? 1 : n * self(self, n - 1); };
+    cout << fact(fact, 10) << "\n";
+    int base = 10;
+    auto add = [base](int v) { return base + v; };
+    base = 100;
+    cout << add(1) << "\n";
+    return 0;
+}
+```
+!!!
+```output
+6 3
+3628800
+11
+```
+
+- `inc(x)` 用預設參數 b = 1，`inc(x, 5)` 加 5，x = 6；參數是 **參考**，所以改到了 x。
+- `static` 區域變數在呼叫之間保留，第三次呼叫回傳 3。
+- lambda 不能直接遞迴呼叫自己（宣告時名字還不存在），常見技巧是把自己當參數傳進去：`self(self, n - 1)`。10! = 3628800。
+- `[base]` 是 **按值捕獲**，建立 lambda 時就複製了 base = 10，之後改 base 不影響：10 + 1 = 11。
+
+??? 找錯
+下面的函式回傳一個「計數器」，但呼叫它時結果是亂七八糟的數字（或者程式當掉）。為什麼？怎麼改？
+
+```cpp
+#include <functional>
+
+std::function<int()> make_counter() {
+    int count = 0;
+    return [&count]() { return ++count; };
+}
+
+auto c = make_counter();
+c(); c();
+```
+!!!
+lambda **按參考捕獲** 了區域變數 `count`，但 `make_counter` 一回傳，`count` 就銷毀了。之後呼叫 `c()` 時，lambda 裡的參考指向一塊已經不存在的記憶體 → **懸空參考**，未定義行為。
+
+改法：**按值捕獲**，並加上 `mutable` 讓 lambda 可以修改自己的那份複本：
+
+```cpp
+std::function<int()> make_counter() {
+    int count = 0;
+    return [count]() mutable { return ++count; };   // 每個 counter 有自己的 count
+}
+```
+
+原則：lambda 如果會 **活得比它所在的函式久**（被回傳、存起來、交給另一個執行緒），就不要按參考捕獲區域變數。
 
 @@@ 05 | 指標與參考
 
@@ -516,6 +756,53 @@ e llo
 - `row` 是「指向 3 個 int 的陣列」的指標，`row + 1` 跳過一整列；`*(row + 1) + 2` 是第二列第三個元素的位址 → 6。
 - `sizeof(m) / sizeof(m[0])` = 24 / 12 = 2（列數）。
 - `s + 2` 是指向 `'l'` 的 `const char*`，`cout` 會把它當字串印出 `llo`。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+void swap_ptr(int* a, int* b) { int t = *a; *a = *b; *b = t; }
+void swap_ref(int& a, int& b) { int t = a; a = b; b = t; }
+void bad_swap(int* a, int* b) { int* t = a; a = b; b = t; }
+
+int main() {
+    int x = 1, y = 2;
+    swap_ptr(&x, &y);
+    cout << x << " " << y << " | ";
+    swap_ref(x, y);
+    cout << x << " " << y << " | ";
+    bad_swap(&x, &y);
+    cout << x << " " << y << "\n";
+    return 0;
+}
+```
+!!!
+```output
+2 1 | 1 2 | 1 2
+```
+
+- `swap_ptr`：透過指標修改 `*a`、`*b`，真的交換了 x、y。
+- `swap_ref`：參考就是別名，交換回來。
+- `bad_swap`：交換的是 **兩個指標參數本身**（函式裡的複本），x、y 完全沒有被改到。要透過指標修改呼叫者的變數，一定要 **解參考**。
+
+??? 判斷能不能編譯
+```cpp
+int x = 1;
+int&& r1 = 5;              // (a)
+int&& r2 = x;              // (b)
+int&& r3 = std::move(x);   // (c)
+const int& r4 = x + 1;     // (d)
+int& r5 = x + 1;           // (e)
+int& r6 = r1;              // (f)
+```
+!!!
+- (a) **可以**：右值參考綁定到暫時物件（字面值 5）。
+- (b) **不行**：`x` 是左值，右值參考不能直接綁定左值。
+- (c) **可以**：`std::move(x)` 把 x 轉成右值（xvalue）。
+- (d) **可以**：`const` 左值參考可以綁定暫時物件，並延長它的生命週期。
+- (e) **不行**：非 const 的左值參考不能綁定暫時物件。
+- (f) **可以**：**有名字的右值參考本身是左值**，所以可以綁定到 `int&`。這也是為什麼在移動建構子裡，要把參數再 `std::move` 一次才能繼續移動。
 
 @@@ 06 | 記憶體管理、RAII 與移動語意
 
@@ -627,6 +914,75 @@ int main() {
 1. **什麼都沒移動**。它只是一個轉型：把 `x` 轉成右值參考（`T&&`），讓多載解析選到 **移動** 建構子 / 移動指定。真正「搬走資源」的是那些函式。被移動之後的物件處於「有效但未指定」的狀態，只能重新指定或解構。
 2. `vector` 擴容時要把舊元素搬到新空間，而且要提供 **強例外保證**（失敗時原本的 vector 不變）。如果移動建構子可能丟例外，搬到一半失敗就無法復原，所以 `vector` 會改用 **複製**（慢）。標了 `noexcept`，`vector` 才敢用移動。
 3. 第一個節點解構時，會解構它的 `unique_ptr<Node> next`，觸發第二個節點的解構……形成 **深度 10⁶ 的遞迴**，堆疊溢位。解法：在串列的解構子裡用迴圈一個一個釋放（每次把 `next` 搬出來，讓目前節點的 `next` 是空的再釋放）。
+
+??? 預測輸出
+每個特殊成員函式都會印出自己的名字（D = 預設建構、C = 複製建構、M = 移動建構、CA = 複製指定、MA = 移動指定、~ = 解構）：
+
+```cpp
+#include <iostream>
+#include <utility>
+using namespace std;
+
+struct T {
+    T() { cout << "D "; }
+    T(const T&) { cout << "C "; }
+    T(T&&) noexcept { cout << "M "; }
+    T& operator=(const T&) { cout << "CA "; return *this; }
+    T& operator=(T&&) noexcept { cout << "MA "; return *this; }
+    ~T() { cout << "~ "; }
+};
+
+T make() { return T(); }
+
+int main() {
+    T a;
+    T b = a;
+    T c = std::move(a);
+    b = c;
+    c = T();
+    cout << "| ";
+    T d = make();
+    cout << "| ";
+    return 0;
+}
+```
+!!!
+```output
+D C M CA D MA ~ | D | ~ ~ ~ ~ 
+```
+
+- `T a;` → D
+- `T b = a;` → C（從左值建構，複製）
+- `T c = std::move(a);` → M（從右值建構，移動）
+- `b = c;` → CA（**已經存在** 的物件被指定，是指定運算子，不是建構子）
+- `c = T();` → 先建構暫時物件 D，再 MA 移動指定給 c，然後暫時物件解構 ~
+- `T d = make();` → 只有一個 D：C++17 **保證複製省略 (guaranteed copy elision)**，`return T();` 直接在 d 的位置建構，沒有任何複製或移動。
+- `main` 結束時 d、c、b、a 依相反順序解構，四個 ~。
+
+??? 寫程式
+用智慧指標寫出雙向串列的節點 `struct Node`，讓串列在最後一個外部指標消失時能 **自動釋放所有節點**。`next` 和 `prev` 各該用哪一種智慧指標？為什麼不能兩個都用 `shared_ptr`？
+!!!
+```cpp
+#include <memory>
+
+struct Node {
+    int value;
+    std::shared_ptr<Node> next;   // 擁有下一個節點
+    std::weak_ptr<Node> prev;     // 只「看著」前一個節點，不擁有
+};
+
+auto a = std::make_shared<Node>();
+auto b = std::make_shared<Node>();
+a->next = b;
+b->prev = a;
+if (auto p = b->prev.lock()) { /* p 是 shared_ptr，確定前一個節點還活著才使用 */ }
+```
+
+如果 `prev` 也是 `shared_ptr`：a 擁有 b（`a->next`）、b 也擁有 a（`b->prev`），形成 **循環參考**。外部的 `a`、`b` 都消失之後，兩個節點的參考計數還是 1（互相指著對方），**永遠不會釋放**，記憶體洩漏。
+
+`weak_ptr` 不增加參考計數，打破了循環；要使用時用 `lock()` 取得一個暫時的 `shared_ptr`（物件已經釋放時會得到空的）。
+
+（另一種常見設計：`next` 用 `unique_ptr`、`prev` 用普通指標 `Node*`，所有權只沿著 `next` 方向。）
 
 @@@ 07 | 類別與物件導向
 
@@ -751,6 +1107,51 @@ Frac operator+(Frac a, const Frac& b) {        // a 是複本
 1. 不變量是 **在任何公開函式執行前後都必須成立的條件**。例如 `Frac`：分母永遠 > 0、分子分母永遠互質（已約分）。建構子負責建立不變量，每個會修改狀態的公開函式負責維持它。有了不變量，其他函式就可以依賴它（例如 `==` 直接比較分子分母）。
 2. **封裝**：如果成員是 `public`，任何人都可以寫 `f.den = 0;`，直接破壞不變量，類別無法保證自己的正確性。設成 `private` 之後，只能透過公開函式修改，所有的修改都經過檢查。另外也能自由地修改內部表示方式，不影響使用者的程式。
 
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+struct V {
+    int x, y;
+    V& operator+=(const V& o) { x += o.x; y += o.y; return *this; }
+};
+V operator+(V a, const V& b) { return a += b; }
+V operator-(const V& a) { return {-a.x, -a.y}; }
+bool operator==(const V& a, const V& b) { return a.x == b.x && a.y == b.y; }
+ostream& operator<<(ostream& os, const V& v) { return os << "(" << v.x << "," << v.y << ")"; }
+
+int main() {
+    V a{1, 2}, b{3, 4};
+    V c = a + b;
+    (a += b) += b;
+    cout << c << a << -b << (c == V{4, 6}) << "\n";
+    return 0;
+}
+```
+!!!
+```output
+(4,6)(7,10)(-3,-4)1
+```
+
+- `c = a + b`：`operator+` 的第一個參數是 **傳值**（a 的複本），在複本上 `+=` 再回傳，a 本身沒變 → (4,6)。
+- `(a += b) += b`：`+=` 回傳 **自己的參考**，所以可以連續作用在同一個物件上：(1,2) → (4,6) → (7,10)。如果 `+=` 回傳的是值，第二個 `+=` 會加在暫時的複本上，a 只會變成 (4,6)。
+- 一元 `-` 回傳一個新的值。
+- `operator<<` 回傳 `ostream&`，才能連續輸出。
+
+??? 觀念
+為什麼像 `vector`、`string` 這樣的類別，`operator[]` 通常要寫 **兩個版本**？
+
+```cpp
+T& operator[](size_t i);
+const T& operator[](size_t i) const;
+```
+!!!
+- **非 const 版本** 回傳 `T&`，讓一般的物件可以透過 `v[i] = x` **修改** 元素。
+- **const 版本** 給 `const` 物件（或透過 `const&` 拿到的物件）使用：const 物件只能呼叫 const 成員函式。它回傳 `const T&`，可以讀、不能改，而且不用複製元素。
+
+只寫非 const 版本的話，`void print(const MyVec& v) { cout << v[0]; }` 會編譯錯誤；只寫 const 版本的話，就沒辦法透過 `[]` 修改元素。編譯器會依照物件本身是不是 const 自動選擇。
+
 @@@ 08 | 繼承與多型
 
 ??? 預測輸出
@@ -854,6 +1255,90 @@ int main() {
 
    組合的耦合比較低、比較有彈性（可以在執行時替換成員）。只為了「重用程式碼」而繼承，常常會繼承到不該有的介面（例如 `Stack` 繼承 `vector` 之後，使用者可以從中間插入，破壞堆疊的性質）。只有真的需要 **多型**（用父類別指標操作不同的子類別）時才用公開繼承。
 
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+struct B {
+    virtual void f(int) { cout << "B::f(int) "; }
+    virtual ~B() = default;
+};
+struct D : B {
+    void f(double) { cout << "D::f(double) "; }
+};
+struct E : B {
+    using B::f;
+    void f(double) { cout << "E::f(double) "; }
+};
+
+struct A { virtual ~A() = default; };
+struct X : A {};
+struct Y : A {};
+
+int main() {
+    D d;
+    d.f(1);
+    B& r = d;
+    r.f(1);
+    E e;
+    e.f(1);
+    e.f(1.5);
+    cout << "\n";
+    A* p = new X;
+    cout << (dynamic_cast<X*>(p) != nullptr) << (dynamic_cast<Y*>(p) != nullptr) << "\n";
+    delete p;
+    return 0;
+}
+```
+!!!
+```output
+D::f(double) B::f(int) B::f(int) E::f(double) 
+10
+```
+
+- **名稱隱藏**：`D` 宣告了一個叫 `f` 的函式，就把父類別所有叫 `f` 的函式都 **遮住** 了。`d.f(1)` 在 `D` 的範圍裡只看到 `f(double)`，1 被轉成 1.0。
+- `D::f(double)` 的參數型別不同，**不是覆寫**，只是一個新的函式。透過 `B&` 呼叫 `f(1)` 時，虛擬函式表裡還是 `B::f(int)`。（gcc 會警告 `'virtual void B::f(int)' was hidden`；如果加上 `override`，編譯器會直接報錯，幫你發現這個錯誤。）
+- `E` 用 `using B::f;` 把父類別的 `f` **引入** 自己的範圍，兩個版本一起參加多載解析：`f(1)` 選 `f(int)`、`f(1.5)` 選 `f(double)`。
+- `dynamic_cast` 在執行時檢查物件真正的型別：p 指向的是 `X`，轉成 `X*` 成功，轉成 `Y*` 失敗（回傳 `nullptr`）。只有多型類別（有虛擬函式）才能用 `dynamic_cast`。
+
+??? 觀念
+數學上「正方形是一種長方形」，所以有人這樣設計：
+
+```cpp
+class Rectangle {
+public:
+    virtual void set_width(int w) { width = w; }
+    virtual void set_height(int h) { height = h; }
+    int area() const { return width * height; }
+protected:
+    int width = 0, height = 0;
+};
+
+class Square : public Rectangle {
+public:
+    void set_width(int w) override { width = height = w; }
+    void set_height(int h) override { width = height = h; }
+};
+```
+
+這個設計違反了什麼原則？舉一段會出錯的程式。
+!!!
+違反 **里氏替換原則 (Liskov Substitution Principle)**：子類別的物件必須能 **在任何使用父類別的地方替代父類別**，而且不破壞原本的行為。
+
+```cpp
+void stretch(Rectangle& r) {
+    r.set_width(5);
+    r.set_height(4);
+    assert(r.area() == 20);    // 對長方形來說理所當然
+}
+
+Square s;
+stretch(s);                    // 設定高度時把寬度也改成 4，面積是 16，assert 失敗
+```
+
+`Rectangle` 隱含的規格是「寬和高可以 **獨立** 設定」，`Square` 做不到，所以在行為上它 **不是一種** `Rectangle`，就算數學上是。解法：不要用繼承表達這個關係，例如兩者都繼承一個只有 `area()` 的抽象類別 `Shape`，或讓它們是不可變的值物件（只在建構時決定大小）。
+
 @@@ 09 | 抽象資料型別與程式設計
 
 ??? 寫程式
@@ -927,6 +1412,49 @@ struct Rect   : Shape { double w, h; double area() const override { return w * h
    - 多一次堆積配置和一層間接存取（比較慢）；
    - 要自己處理複製（`unique_ptr` 不能複製）；
    - 解構子必須寫在 `.cpp` 裡（`Impl` 在那裡才是完整型別）。
+
+??? 找錯
+下面的類別有什麼設計問題？應該怎麼拆？
+
+```cpp
+class Report {
+public:
+    void load_from_csv(const std::string& path);   // 讀檔、解析
+    double average() const;                        // 計算統計資料
+    double median() const;
+    void print_html(std::ostream& os) const;       // 輸出成 HTML
+    void send_email(const std::string& to) const;  // 寄出報表
+};
+```
+!!!
+違反 **單一職責原則 (Single Responsibility Principle)**：一個類別應該只有 **一個改變的理由**。`Report` 同時負責 **讀資料、計算、排版、寄信**：CSV 格式改了、HTML 樣式改了、郵件伺服器換了，都要修改這個類別；測試「平均值算得對不對」也被迫牽扯到檔案和網路。這是 **低內聚、高耦合**。
+
+可以拆成：
+- `CsvReader`：讀檔、解析，產生資料（例如 `std::vector<double>`）。
+- `Statistics`：只負責計算平均、中位數（很容易單獨測試）。
+- `HtmlFormatter`：把統計結果排版成 HTML。
+- `EmailSender`：寄出一段文字。
+
+再由一個簡單的函式把它們串起來。每個部分都能獨立修改、測試和重複使用（例如之後要輸出 PDF，只要新增一個 formatter）。
+
+??? 寫程式
+根據下面的規格，寫出 **至少六個** 測試案例（只要描述「輸入 / 操作」和「預期結果」）：
+
+> `int Fraction::compare(const Fraction& o) const`：比較兩個分數的大小，`*this` 小於 o 回傳 -1、相等回傳 0、大於回傳 1。分數的分母保證不是 0，可以是負數。
+!!!
+| # | 操作 | 預期 | 測什麼 |
+|---|---|---|---|
+| 1 | `1/2` vs `1/3` | 1 | 一般情況 |
+| 2 | `1/3` vs `1/2` | -1 | 反方向 |
+| 3 | `1/2` vs `2/4` | 0 | **沒有約分** 的相等分數 |
+| 4 | `1/-2` vs `-1/2` | 0 | **負號在分母** |
+| 5 | `-1/2` vs `1/3` | -1 | 負數 vs 正數 |
+| 6 | `-1/2` vs `-1/3` | -1 | 兩個負數（-0.5 < -0.333） |
+| 7 | `0/5` vs `0/-3` | 0 | 零的不同表示 |
+| 8 | `1000000000/1` vs `999999999/1` | 1 | **交叉相乘可能溢位**（要用 `long long` 或先約分） |
+| 9 | `a.compare(a)` | 0 | 和自己比較 |
+
+照著規格寫測試的重點是：每一句規格都至少有一個測試，並特別針對 **邊界**（相等、負號、零、極大值）設計。實作通常是比較 `a.num * b.den` 和 `b.num * a.den`，但 **分母是負數時不等號會反向**，第 4、7 個測試就是用來抓這個錯誤的。
 
 @@@ 10 | 模板與泛型程式設計
 
@@ -1010,6 +1538,76 @@ auto sum_all(Ts... xs) {
 - `(xs + ...)` 是 C++17 的摺疊運算式，把 `+` 套用在所有參數之間。
 - 回傳型別用 `auto`，由運算結果決定（`1.5 + 2` 是 `double`）。
 - 沒有參數時 `(xs + ...)` 會編譯錯誤；要支援的話寫成 `(0 + ... + xs)`（帶初始值的左摺疊）。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+template <int N> struct Fact { static const long long v = N * Fact<N - 1>::v; };
+template <> struct Fact<0> { static const long long v = 1; };
+
+template <class T> struct Name { static const char* get() { return "T"; } };
+template <class T> struct Name<T*> { static const char* get() { return "T*"; } };
+template <> struct Name<int> { static const char* get() { return "int"; } };
+
+template <class T> void h(T) { cout << "template "; }
+void h(int) { cout << "int "; }
+
+int main() {
+    cout << Fact<10>::v << " " << Name<double>::get() << " " << Name<int*>::get() << " " << Name<int>::get() << "\n";
+    h(1);
+    h(1.0);
+    h<>(1);
+    h('a');
+    cout << "\n";
+    return 0;
+}
+```
+!!!
+```output
+3628800 T T* int
+int template template template 
+```
+
+- `Fact<N>` 在 **編譯時** 遞迴實例化，`Fact<0>` 的完全特化是終止條件。這是最簡單的「模板超程式設計」（現在用 `constexpr` 函式寫比較好讀）。
+- `Name<T*>` 是 **部分特化**（所有指標型別），`Name<int>` 是完全特化；編譯器選 **最特化** 的版本。
+- 多載解析時，**非模板函式和模板一樣好時，優先選非模板**：`h(1)` → `int` 版本。
+- `h(1.0)`：模板推導出 `h<double>` 是完全符合，比 `double → int` 的轉換好。
+- `h<>(1)`：明確寫了 `<>`，只考慮模板。
+- `h('a')`：模板推導出 `h<char>` 是 **完全符合**，比 `char → int` 的「提升」還好，所以選模板。
+
+??? 寫程式
+寫一個函式模板 `print_all(const C& c)`，可以印出任何容器（`vector`、`list`、`set`……）的元素，用空白分隔。再用 C++20 concepts 或 `static_assert` 讓「傳入不能走訪的型別（例如 `int`）」時有清楚的錯誤訊息。
+!!!
+```cpp
+#include <iostream>
+#include <iterator>
+#include <type_traits>
+
+// C++17：用型別特徵檢查「有沒有 begin()」
+template <class C, class = void>
+struct is_iterable : std::false_type {};
+template <class C>
+struct is_iterable<C, std::void_t<decltype(std::begin(std::declval<const C&>()))>> : std::true_type {};
+
+template <class C>
+void print_all(const C& c) {
+    static_assert(is_iterable<C>::value, "print_all: 參數必須是可以走訪的容器");
+    bool first = true;
+    for (const auto& x : c) {
+        if (!first) std::cout << " ";
+        std::cout << x;
+        first = false;
+    }
+    std::cout << "\n";
+}
+
+// C++20 可以直接寫：
+// template <std::ranges::range C> void print_all(const C& c) { ... }
+```
+
+沒有檢查的話，`print_all(42)` 的錯誤訊息會出現在模板內部的 range-for 那一行，又長又難懂；加上 `static_assert`（或 concept）之後，錯誤會直接告訴使用者「參數必須是可以走訪的容器」。
 
 @@@ 11 | STL 深入
 
@@ -1122,6 +1720,75 @@ for (auto it = m.begin(); it != m.end(); ) {
 
 C++20 可以直接寫 `std::erase_if(m, [](const auto& p) { return p.second == 0; });`。
 
+??? 預測輸出
+```cpp
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <numeric>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> v = {5, 3, 8, 1, 9, 2};
+    sort(v.begin(), v.end(), greater<int>());
+    for (int x : v) cout << x << " ";
+    cout << "| " << count_if(v.begin(), v.end(), [](int x) { return x > 4; });
+    vector<int> ps(v.size());
+    partial_sum(v.begin(), v.end(), ps.begin());
+    cout << " " << ps.back() << " " << *max_element(v.begin(), v.end()) << "\n";
+    string s = "abc";
+    int perms = 0;
+    do perms++; while (next_permutation(s.begin(), s.end()));
+    cout << perms << " " << s << "\n";
+    vector<int> w(5);
+    iota(w.begin(), w.end(), 1);
+    transform(w.begin(), w.end(), w.begin(), [](int x) { return x * x; });
+    cout << accumulate(w.begin(), w.end(), 0) << " " << *find(w.begin(), w.end(), 16) << "\n";
+    return 0;
+}
+```
+!!!
+```output
+9 8 5 3 2 1 | 3 28 9
+6 abc
+55 16
+```
+
+- `sort` 加上 `greater<int>()` 由大到小排序。
+- `count_if` 數符合條件的元素：9、8、5 → 3。
+- `partial_sum` 計算前綴和，最後一個就是總和 28。
+- `next_permutation` 產生 **下一個字典序** 的排列，已經是最後一個時回傳 false，**並把序列變回第一個排列**（排好序），所以迴圈結束時 s 又是 `abc`。3 個字元共 3! = 6 種排列（要從排好序的狀態開始，才能列出全部）。
+- `iota` 填入 1, 2, 3, 4, 5；`transform` 原地平方 → 1 4 9 16 25，總和 55。
+
+??? 寫程式
+想用 `unordered_map<pair<int,int>, int>` 記錄網格上每個座標的值，卻編譯錯誤。為什麼？寫出一個自訂的雜湊函式讓它可以用。
+!!!
+`unordered_map` 需要 `std::hash<Key>`，標準函式庫 **沒有** 提供 `std::hash<pair<int,int>>`，所以編譯錯誤。（`map<pair<int,int>, int>` 可以用，因為 `pair` 有 `operator<`。）
+
+```cpp
+#include <cstdint>
+#include <unordered_map>
+#include <utility>
+
+struct PairHash {
+    size_t operator()(const std::pair<int, int>& p) const {
+        // 把兩個 32 位元的值合成一個 64 位元的值，再交給 std::hash
+        uint64_t key = (uint64_t)(uint32_t)p.first << 32 | (uint32_t)p.second;
+        return std::hash<uint64_t>{}(key);
+    }
+};
+
+std::unordered_map<std::pair<int, int>, int, PairHash> grid;
+grid[{3, 4}] = 7;
+```
+
+重點：
+- 相等的 key 一定要得到相同的雜湊值（`pair` 本來就有 `operator==`）。
+- 不要寫成 `p.first ^ p.second`：(1, 2) 和 (2, 1) 會撞在一起，(x, x) 全部變成 0，碰撞非常多。
+- 如果怕被刻意構造的資料攻擊，可以再加上隨機種子和 splitmix64 打亂位元。
+
 @@@ 12 | 字串與輸入輸出
 
 ??? 預測輸出
@@ -1219,6 +1886,71 @@ bool parse(const string& line, string& name, double& avg) {
 ```
 
 `istringstream` 把一個字串當成輸入串流，`>>` 會自動跳過空白，用起來和讀 `cin` 一樣。每一行用一個新的串流解析，一行格式錯誤也不會影響下一行。
+
+??? 預測輸出
+```cpp
+#include <iomanip>
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string s = "hello world";
+    s.replace(0, 5, "HELLO");
+    s.insert(5, ",");
+    s.erase(s.size() - 1);
+    cout << s << "|" << s.size() << "\n";
+    cout << stoi("ff", nullptr, 16) << " " << to_string(3.5) << " " << stoi("  42abc") << "\n";
+    string t = "racecar";
+    cout << (t == string(t.rbegin(), t.rend())) << "\n";
+    cout << setw(5) << 42 << "|" << left << setw(5) << 42 << "|" << setfill('0') << right << setw(5) << 42 << "|\n";
+    cout << setprecision(3) << 3.14159 << " " << fixed << setprecision(3) << 3.14159 << "\n";
+    return 0;
+}
+```
+!!!
+```output
+HELLO, worl|11
+255 3.500000 42
+1
+   42|42   |00042|
+3.14 3.142
+```
+
+- `replace(0, 5, "HELLO")` 把前 5 個字元換掉；`insert(5, ",")` 在索引 5 插入；`erase(size() - 1)` 刪掉最後一個字元（只給一個參數時刪到結尾）。
+- `stoi("ff", nullptr, 16)` 用 16 進位解析；`to_string(3.5)` 固定印 6 位小數；`stoi` 會跳過開頭的空白，讀到不是數字的字元就停。
+- 用反向迭代器建立反轉的字串來判斷迴文。
+- `setw` 只影響 **下一個** 輸出；`left`、`right`、`setfill` 會 **一直保持** 到被改掉為止。
+- 沒有 `fixed` 時，`setprecision(3)` 是 **總共 3 位有效數字**（3.14）；加了 `fixed` 之後是 **小數點後 3 位**（3.142）。
+
+??? 寫程式
+寫一個函式 `vector<string> split(const string& s, char delim)`，用分隔字元切割字串，**保留空的欄位**（`"a,,b,"` 用 `,` 切割要得到 `["a", "", "b", ""]`）。用 `find` 和 `substr` 寫，不要用 `stringstream`。
+!!!
+```cpp
+#include <string>
+#include <vector>
+using namespace std;
+
+vector<string> split(const string& s, char delim) {
+    vector<string> parts;
+    size_t start = 0;
+    while (true) {
+        size_t pos = s.find(delim, start);
+        if (pos == string::npos) {
+            parts.push_back(s.substr(start));        // 最後一段（可能是空字串）
+            break;
+        }
+        parts.push_back(s.substr(start, pos - start));
+        start = pos + 1;
+    }
+    return parts;
+}
+```
+
+- `find(delim, start)` 從 `start` 開始找下一個分隔字元，找不到回傳 `string::npos`（一定要用 `npos` 比較，不要和 -1 或 `int` 比）。
+- `substr(start, pos - start)` 取出兩個分隔字元之間的部分，可能是空字串。
+- 最後一個分隔字元後面的部分也要加入，所以 `"a,,b,"` 會得到 4 個欄位；空字串 `""` 會得到一個空欄位。
+- 用 `getline(ss, tok, ',')` 的版本 **不會** 產生最後那個空欄位，這是兩種寫法的差別。
 
 @@@ 13 | 例外處理
 
@@ -1328,6 +2060,83 @@ void Roster::add(const string& name, int score) {
 - 效能極度敏感的迴圈裡（丟出例外的成本很高）。
 - 解構子裡。
 
+??? 預測輸出
+```cpp
+#include <exception>
+#include <iostream>
+#include <stdexcept>
+using namespace std;
+
+struct M {
+    const char* n;
+    M(const char* s) : n(s) { cout << "+" << n << " "; }
+    ~M() { cout << "-" << n << " "; }
+};
+struct X {
+    M a{"a"};
+    M b{"b"};
+    X() { cout << "X() "; throw runtime_error("boom"); }
+    ~X() { cout << "~X "; }
+};
+
+struct Base : exception { const char* what() const noexcept override { return "base"; } };
+struct Der : Base { const char* what() const noexcept override { return "derived"; } };
+
+int main() {
+    try { X x; } catch (const exception& e) { cout << e.what() << "\n"; }
+    try {
+        try { throw Der(); } catch (Base& e) { throw e; }
+    } catch (exception& e) { cout << e.what() << " "; }
+    try {
+        try { throw Der(); } catch (Base& e) { throw; }
+    } catch (exception& e) { cout << e.what() << "\n"; }
+    return 0;
+}
+```
+!!!
+```output
++a +b X() -b -a boom
+base derived
+```
+
+- **建構子丟出例外時**：已經建構完成的成員（a、b）會以相反順序解構，但物件本身的 **解構子不會被呼叫**（物件從來沒有建構完成）。所以如果建構子裡用裸指標 `new` 了資源，丟例外時就會洩漏；用 RAII 的成員（`unique_ptr`、`vector`）就沒問題。
+- `throw e;` 會 **複製** 一個新的例外物件，型別是 `e` 的 **靜態型別** `Base`，`Der` 的部分被切割掉了，所以 `what()` 是 "base"。
+- `throw;`（不加運算式）**重新丟出原本那個例外物件**，型別還是 `Der`，`what()` 是 "derived"。重新丟出時一定要用 `throw;`。
+
+??? 寫程式
+寫一個 RAII 類別 `FileGuard`，在建構時用 `fopen` 開檔（失敗就丟出 `std::runtime_error`），在解構時 `fclose`。說明為什麼用了它之後，函式中途丟出例外也不會漏關檔案，並說明複製這個類別會有什麼問題、怎麼處理。
+!!!
+```cpp
+#include <cstdio>
+#include <stdexcept>
+#include <string>
+
+class FileGuard {
+public:
+    FileGuard(const std::string& path, const char* mode) : fp_(std::fopen(path.c_str(), mode)) {
+        if (!fp_) throw std::runtime_error("cannot open " + path);
+    }
+    ~FileGuard() { if (fp_) std::fclose(fp_); }
+
+    FileGuard(const FileGuard&) = delete;              // 禁止複製
+    FileGuard& operator=(const FileGuard&) = delete;
+    FileGuard(FileGuard&& o) noexcept : fp_(o.fp_) { o.fp_ = nullptr; }   // 可以移動
+
+    std::FILE* get() const { return fp_; }
+private:
+    std::FILE* fp_;
+};
+
+void process(const std::string& path) {
+    FileGuard f(path, "r");
+    parse(f.get());          // 就算這裡丟出例外……
+}                            // ……離開作用域時 ~FileGuard() 一定會關檔
+```
+
+- 例外往外傳遞時，**堆疊回溯** 會解構途中所有的區域物件，所以 `~FileGuard()` 保證會執行，不需要在每一個 `return` 和 `catch` 前面手動 `fclose`。
+- 如果允許複製，兩個 `FileGuard` 會持有同一個 `FILE*`，各 `fclose` 一次 → **重複關閉**（未定義行為）。所以要 **禁止複製**；需要轉移所有權時提供移動建構子，移動後把來源設成 `nullptr`。
+- 建構子裡開檔失敗就丟出例外，物件根本不會存在，所以「拿到的 `FileGuard` 一定是開檔成功的」（這就是一個不變量）。
+
 @@@ 14 | 編譯模型與程式組織
 
 ??? 觀念
@@ -1417,6 +2226,59 @@ debug
 - `#x` 把參數變成字串；`a##b` 把兩段接成一個名字 `var7`。
 - 巢狀命名空間用 `::` 存取；匿名命名空間裡的名字在這個檔案裡可以直接用（但其他檔案看不到）。
 - 沒有定義 `NDEBUG`，走 `#else` 分支。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+using namespace std;
+
+namespace A {
+    int f() { return 1; }
+    namespace B {
+        int f() { return 2; }
+        int g() { return f(); }
+    }
+    int h() { return B::f() * 10 + f(); }
+}
+
+namespace geo {
+    struct P { int x; };
+    int norm(P p) { return p.x * 2; }
+}
+
+int main() {
+    cout << A::B::g() << " " << A::f() << " " << A::h() << "\n";
+    geo::P p{5};
+    cout << norm(p) << "\n";
+    using namespace A::B;
+    cout << g() << "\n";
+    return 0;
+}
+```
+!!!
+```output
+2 1 21
+10
+2
+```
+
+- 在 `A::B::g()` 裡呼叫 `f()`，名稱查找 **由內而外**，先在 `B` 找到 `B::f`，就不再往外找了 → 2。
+- `A::h()` 在 `A` 裡，`f()` 指的是 `A::f`；`B::f()` 要明確寫出來：2 × 10 + 1 = 21。
+- `norm(p)` 沒有寫 `geo::`，卻找得到：**引數相依查找 (ADL)** 會到引數型別（`geo::P`）所在的命名空間找函式。`cout << x` 能找到 `std::operator<<` 也是靠 ADL。
+- `using namespace A::B;` 之後可以直接寫 `g()`。
+
+??? 觀念
+`a.h` 裡的類別 `A` 有一個成員是 `B*`（指標），另一個成員函式的參數是 `const B&`。
+
+1. `a.h` 需要 `#include "b.h"` 嗎？還是 **前置宣告** `class B;` 就夠了？
+2. 什麼情況下一定要 include 完整的定義？
+3. 用前置宣告有什麼好處？
+!!!
+1. **前置宣告就夠了**。宣告指標、參考成員，或函式的參數 / 回傳型別是 `B*`、`B&`、`B`（只是宣告不是定義）時，編譯器只需要知道「有 `B` 這個型別」，不需要知道它的大小和成員。
+2. 需要知道 `B` 的 **大小或成員** 時：成員是 `B` 物件本身（不是指標）、繼承 `B`、在標頭檔裡呼叫 `B` 的成員函式或存取它的成員、`sizeof(B)`、建立或刪除 `B`（例如 inline 函式裡 `new B`）。這些通常放在 `a.cpp` 裡，在那裡 include `b.h`。
+3. - **減少編譯相依**：`b.h` 修改時，只 include `a.h` 的檔案不需要重新編譯。
+   - 加快編譯速度。
+   - 可以處理 **互相參考** 的類別（A 有 `B*`、B 有 `A*`），兩個標頭檔互相 include 會出問題。
 
 @@@ 15 | 現代 C++ 與總整理
 
@@ -1523,3 +2385,67 @@ if (Dir::UP == 0) {}                         // (6)
    - **UndefinedBehaviorSanitizer**（`-fsanitize=undefined`）：有號溢位、位移過量、除以 0、空指標存取……
    - **`_GLIBCXX_DEBUG`**：STL 容器的越界和迭代器檢查。
    - 本平台的 `--debug` 就是把這些全部打開。另外還有 Valgrind、靜態分析工具（clang-tidy）等。
+
+??? 預測輸出
+```cpp
+#include <array>
+#include <iostream>
+#include <string_view>
+using namespace std;
+
+constexpr int sq(int x) { return x * x; }
+static_assert(sq(4) == 16);
+
+struct S { int a; double b; };
+
+int main() {
+    auto [p, q] = S{3, 1.5};
+    int arr[3] = {7, 8, 9};
+    auto& [u, v, w] = arr;
+    w = 0;
+    array<int, 4> ar{1, 2, 3};
+    cout << sq(5) << " " << p + q << " " << arr[2] << " " << u + v << " " << ar.size() << " " << ar[3] << "\n";
+    string_view sv = "hello world";
+    cout << sv.substr(6) << " " << sv.find('o') << " " << sv.size() << "\n";
+    if (int n = sq(3); n > 5) cout << "big " << n << "\n";
+    return 0;
+}
+```
+!!!
+```output
+25 4.5 0 15 4 0
+world 4 11
+big 9
+```
+
+- `constexpr` 函式可以在 **編譯時** 計算，所以能用在 `static_assert` 裡；在執行時呼叫也可以。
+- **結構化綁定**：`auto [p, q]` 拆開結構；`auto& [u, v, w]` 綁定到陣列元素的 **參考**，所以改 `w` 就是改 `arr[2]`。u + v = 7 + 8 = 15。
+- `std::array<int, 4>` 只給 3 個初始值，剩下的補 0；`size()` 在編譯時就知道。
+- `string_view::substr` 不複製字串；`find` 回傳第一個 `'o'` 的位置 4。
+- `if (init; cond)`：`n` 的作用域只在這個 `if` 裡。
+
+??? 寫程式
+用 `std::variant<int, double, std::string>` 表示 JSON 裡的一個簡單值，寫一個函式用 `std::visit` 把它轉成字串（字串要加上雙引號）。和用 `enum` + `union` 的 C 寫法比，`variant` 好在哪裡？
+!!!
+```cpp
+#include <string>
+#include <type_traits>
+#include <variant>
+
+using Value = std::variant<int, double, std::string>;
+
+std::string to_json(const Value& v) {
+    return std::visit([](const auto& x) -> std::string {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::is_same_v<T, std::string>) return "\"" + x + "\"";
+        else return std::to_string(x);
+    }, v);
+}
+
+// to_json(42) → "42"、to_json(std::string("hi")) → "\"hi\""
+```
+
+和 C 的「標記 + union」比：
+- **型別安全**：`variant` 自己記得目前存的是哪個型別，用錯型別取值（`std::get<int>` 但其實是 string）會丟出 `bad_variant_access`，不會悄悄讀到垃圾。
+- **自動管理成員的生命週期**：`std::string` 有建構子和解構子，C 的 `union` 不能直接放這種型別；`variant` 換型別時會正確地解構舊的、建構新的。
+- **`std::visit` 會檢查是否處理了所有型別**：漏掉一種型別，lambda 無法對它呼叫時會編譯錯誤；C 的 `switch` 漏掉一個 case 只有警告。

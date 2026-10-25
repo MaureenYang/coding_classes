@@ -90,6 +90,73 @@ int main() {
    - O(n√n) ≈ 2 × 10⁵ × 450 ≈ 9 × 10⁷ → 勉強可以（約 1 秒，看常數）。
 2. 預設 `cin`/`cout` 要和 C 的 `scanf`/`printf` 同步，而且每次讀 `cin` 之前會先 flush `cout`，大量輸入輸出時很慢。關掉同步、解除綁定後速度可以快好幾倍。（關掉之後就 **不能** 再混用 `printf` 和 `cout`。）另外換行用 `"\n"` 而不是 `endl`，因為 `endl` 每次都會 flush。
 
+??? 預測輸出
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct P { int x, y; };
+
+void f(vector<int> v) { v.push_back(1); }
+void g(vector<int>& v) { v.push_back(2); }
+
+int main() {
+    vector<int> a;
+    f(a);
+    g(a);
+    g(a);
+    cout << a.size() << " " << a[0] << "\n";
+    P p{1, 2};
+    P q = p;
+    q.x = 9;
+    cout << p.x << " " << q.x << "\n";
+    int* h = new int[3]{4, 5, 6};
+    cout << h[1] + *(h + 2) << "\n";
+    delete[] h;
+    return 0;
+}
+```
+!!!
+```output
+2 2
+1 9
+11
+```
+
+- `f` 是 **傳值**：收到的是 vector 的複本，`push_back` 加在複本上，函式結束複本就消失了。`g` 是 **傳參考**，真的改到 `a`。所以 `a` 只有兩個元素（都是 2）。
+- 結構的 `=` 會複製每個成員，`q` 是獨立的一份。
+- `new int[3]{4, 5, 6}` 在堆積配置陣列；`h[1]` 和 `*(h + 2)` 是 5 和 6。用 `new[]` 配置的要用 `delete[]` 釋放。
+
+傳值會複製整個 vector（O(n)），大的容器只讀不改時要用 `const vector<int>&`。
+
+??? 複雜度
+寫出每段程式的時間複雜度（v 是排好序、有 n 個元素的 vector）：
+
+```cpp
+// (a)
+for (int i = 0; i < n; i++)
+    if (binary_search(v.begin(), v.end(), q[i])) cnt++;
+
+// (b) 雙指標
+int i = 0, j = 0;
+while (i < n && j < n) {
+    if (a[i] < b[j]) i++;
+    else j++;
+}
+
+// (c) cnt 是 map<int,int>
+for (int i = 0; i < n; i++) cnt[a[i]]++;
+
+// (d)
+for (int i = 0; i * i < n; i++) work();
+```
+!!!
+- (a) **O(n log n)**：n 次二分搜尋，每次 O(log n)。
+- (b) **O(n)**：每一輪 i 或 j 一定有一個加 1，兩個都最多加到 n，所以迴圈最多跑 2n 次。不要看到兩個指標就以為是 O(n²)。
+- (c) **O(n log n)**：`map` 是平衡樹，每次 `[]` 是 O(log n)。換成 `unordered_map` 是平均 O(n)。
+- (d) **O(√n)**：i 只跑到 √n。
+
 @@@ 01b | 時間複雜度考題
 
 ??? 複雜度
@@ -141,6 +208,34 @@ int k(int n) { if (n <= 1) return 1; return k(n / 2) + 1; }               // (d)
 !!!
 1. **攤銷 O(1)**：把很多次操作的總成本平均分攤，每次平均是 O(1)；但 **單獨某一次** 可能很慢（擴容時要複製全部，O(n)）。**最壞情況 O(1)** 則保證每一次都是常數時間。對「總時間」來說兩者一樣；但如果每一次操作都有嚴格的時間要求（例如即時系統），攤銷就不夠了。
 2. 10⁵ × 10⁵ × 4 bytes = 4 × 10¹⁰ bytes = **40 GB**，遠超過 256 MB，不行。稀疏的圖要用 **鄰接串列**（`vector<vector<int>>`），記憶體是 O(n + m)。
+
+??? 計算
+記憶體限制 256 MB，下面每一項大約要多少記憶體？可不可以？
+
+1. `vector<long long> a(10000000);`
+2. `bool vis[1000000000];`
+3. 有 n = 10⁵ 個點、m = 10⁶ 條無向邊的鄰接串列 `vector<vector<int>>`
+4. 長度 10⁸ 的 `string`
+!!!
+1. 10⁷ × 8 bytes = **80 MB**，可以。
+2. 10⁹ × 1 byte = **1 GB**，不行。（通常代表演算法要換，例如改用雜湊表或座標壓縮。）
+3. 無向邊每條存兩次，共 2 × 10⁶ 個 `int` = **8 MB**，加上 10⁵ 個 vector 本身的開銷（每個約 24 bytes ≈ 2.4 MB），約 **10 MB 多**，可以。
+4. 10⁸ bytes ≈ **100 MB**，勉強可以，但如果又複製一份（例如傳值、`s + t`）就超過了。
+
+估算方法：**個數 × 每個元素的大小**。`int` 4、`long long` 8、`double` 8、`bool`/`char` 1、指標 8 bytes。
+
+??? 複雜度
+用遞迴樹或展開法，求出下面遞迴關係式的複雜度：
+
+1. T(n) = T(n/2) + O(n)
+2. T(n) = 2T(n/2) + O(1)
+3. T(n) = T(n − 1) + O(n)
+4. T(n) = T(n − 1) + T(n − 2) + O(1)
+!!!
+1. **O(n)**：n + n/2 + n/4 + … < 2n。
+2. **O(n)**：遞迴樹的節點總數是 1 + 2 + 4 + … + n ≈ 2n，每個節點 O(1)。（例如遞迴求陣列的最大值）
+3. **O(n²)**：n + (n − 1) + … + 1。（例如選擇排序的遞迴寫法）
+4. **O(φⁿ)**，φ ≈ 1.618，也就是指數級（樸素的費氏遞迴）；常常寫成 O(2ⁿ) 當上界。
 
 @@@ 02 | 遞迴：河內塔與回溯法
 
@@ -232,6 +327,58 @@ void dfs(vector<int>& cur, vector<bool>& used, int n) {
    - 或用自己的 `stack` 模擬遞迴（資料放在 heap）；
    - 本機測試時可以調大堆疊（`ulimit -s`），但不能依賴這個。
 
+??? 預測輸出
+下面的回溯法列出 {1, 2, 3} 的所有子集合，每一層決定「不選」或「選」`a[i]`：
+
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int a[] = {1, 2, 3};
+int n = 3;
+vector<int> cur;
+
+void dfs(int i) {
+    if (i == n) {
+        cout << "[";
+        for (size_t k = 0; k < cur.size(); k++) cout << (k ? " " : "") << cur[k];
+        cout << "] ";
+        return;
+    }
+    dfs(i + 1);              // 不選 a[i]
+    cur.push_back(a[i]);     // 選 a[i]
+    dfs(i + 1);
+    cur.pop_back();          // 撤銷
+}
+
+int main() {
+    dfs(0);
+    cout << "\n";
+    return 0;
+}
+```
+!!!
+```output
+[] [3] [2] [2 3] [1] [1 3] [1 2] [1 2 3] 
+```
+
+每個元素都有「不選 / 選」兩種分支，n 個元素共 2ⁿ 個子集合，遞迴樹有 2ⁿ 個葉子。程式 **先走「不選」的分支**，所以第一個印出的是空集合；最後一層（i = 2，決定要不要選 3）變化最快，所以 `[]` 後面緊接著 `[3]`。
+
+??? 觀念
+N 皇后問題（每一列放一個皇后，任兩個皇后不能在同一行、同一條斜線上）：
+
+1. 用回溯法時，「剪枝」剪掉的是什麼？
+2. 怎麼用陣列在 O(1) 時間判斷位置 (r, c) 能不能放？兩條斜線的編號各是什麼？
+!!!
+1. 一放下皇后就檢查衝突，只要 **目前這一列** 和前面已經放好的皇后衝突，就 **不再往下遞迴**，整棵子樹都不用走。沒有剪枝的話要檢查 nⁿ 種放法，剪枝後實際走過的狀態少很多。
+2. 用三個布林陣列記錄已經被佔用的：
+   - `col[c]`：第 c 行。
+   - `diag1[r + c]`：「/」方向的斜線，同一條線上 r + c 相同，範圍 0 ~ 2n − 2。
+   - `diag2[r - c + n - 1]`：「\」方向的斜線，同一條線上 r − c 相同，加上 n − 1 讓索引不是負的。
+
+   三個都沒被佔用才能放；放下時三個都設成 true，**回溯時記得改回 false**。
+
 @@@ 03 | 動態陣列
 
 ??? 計算
@@ -287,6 +434,42 @@ v.pop_back();         // 刪掉最後一個（O(1)）
 ```
 
 `erase` 要保持其他元素的順序，必須把 `i` 後面的所有元素往前搬一格，最壞要搬 n − 1 個。
+
+??? 預測輸出
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> v = {1, 2, 3, 4, 5, 6};
+    for (auto it = v.begin(); it != v.end(); ) {
+        if (*it % 2 == 0) it = v.erase(it);
+        else ++it;
+    }
+    v.insert(v.begin() + 1, 9);
+    for (int x : v) cout << x << " ";
+    cout << "| " << v.size() << " " << v.front() << " " << v.back() << "\n";
+    return 0;
+}
+```
+!!!
+```output
+1 9 3 5 | 4 1 5
+```
+
+- 在走訪時刪除元素，要用 **`erase` 的回傳值**（指向被刪元素的下一個）更新迭代器；刪除時 **不要** 再 `++it`，否則會跳過下一個元素，甚至越過 `end()`。
+- 刪掉偶數後是 `1 3 5`，再在索引 1 插入 9 → `1 9 3 5`。
+- `insert` 和 `erase` 在中間操作都是 O(n)（後面的元素要搬動）。
+
+??? 觀念
+自己實作的動態陣列在 `pop_back` 時也想縮小容量以節省記憶體。
+
+1. 如果規則是「size 降到 capacity 的 **1/2** 時，容量減半」，會有什麼問題？舉一個操作序列。
+2. 比較好的規則是什麼？為什麼？
+!!!
+1. 會 **反覆抖動 (thrashing)**。假設容量 8、size 是 5，`pop_back` 到 4（剛好一半）→ 縮成容量 4；接著 `push_back` 一次，size 5 > 4 → 又擴成 8；再 `pop_back` → 又縮……每次操作都觸發 O(n) 的重新配置，攤銷 O(1) 的保證就消失了。
+2. **size 降到 capacity 的 1/4 才減半**。縮小之後 size 是新容量的 1/2，離「要擴大」和「要縮小」都還有一段距離，中間至少要做 Θ(n) 次操作才會再觸發重新配置，攤銷成本仍然是 O(1)。（STL 的 `vector` 乾脆不自動縮小，要縮小時呼叫 `shrink_to_fit`。）
 
 @@@ 04 | 鏈結串列
 
@@ -344,6 +527,67 @@ LRU 快取需要做到 `get` 和 `put` 都是 O(1)。為什麼要用「**雙向*
 - **雜湊表**：key → 串列節點的位置，讓「找到某個 key」是 O(1)。只用串列的話，要從頭找，O(n)。
 - **串列**：維持「最近使用」的順序，把一個節點移到最前面、刪掉最後一個都是 O(1)。只用雜湊表的話，沒辦法 O(1) 找出「最久沒用的那個」。
 - **雙向**：從中間刪除一個節點時，需要修改它 **前一個節點** 的 `next`。單向串列只能從頭走才找得到前一個，O(n)；雙向串列有 `prev` 指標，直接 O(1)。
+
+??? 預測輸出
+建立 1 ~ 6 的串列，用虛擬頭節點刪除所有偶數，再反轉：
+
+```cpp
+#include <iostream>
+using namespace std;
+
+struct Node { int val; Node* next; };
+
+int main() {
+    Node* head = nullptr;
+    Node* tail = nullptr;
+    for (int i = 1; i <= 6; i++) {               // 用 tail 加到尾端
+        Node* n = new Node{i, nullptr};
+        if (!head) head = tail = n;
+        else { tail->next = n; tail = n; }
+    }
+    Node dummy{0, head};                        // 虛擬頭節點
+    for (Node* p = &dummy; p->next; ) {
+        if (p->next->val % 2 == 0) {
+            Node* dead = p->next;
+            p->next = dead->next;
+            delete dead;
+        } else {
+            p = p->next;
+        }
+    }
+    head = dummy.next;
+    Node* prev = nullptr;                       // 反轉
+    while (head) { Node* nx = head->next; head->next = prev; prev = head; head = nx; }
+    head = prev;
+    int len = 0;
+    for (Node* p = head; p; p = p->next) { cout << p->val << " "; len++; }
+    cout << "| " << len << "\n";
+    while (head) { Node* nx = head->next; delete head; head = nx; }
+    return 0;
+}
+```
+!!!
+```output
+5 3 1 | 3
+```
+
+- 用 `tail` 指標加到尾端是 O(1)；第一個節點時 `head` 和 `tail` 都要設定。
+- **虛擬頭節點** `dummy` 讓第一個節點也「有前一個節點」，刪除 head 不用特別處理。刪除後 `p` **不前進**，因為 `p->next` 已經換成下一個節點，還要再檢查一次。
+- 反轉後 `1 3 5` 變成 `5 3 1`。
+
+??? 觀念
+什麼情況下鏈結串列比陣列（`vector`）好？什麼情況下比較差？為什麼實務上大部分時候 `vector` 都比較快？
+!!!
+| 操作 | 陣列（vector） | 鏈結串列 |
+|---|---|---|
+| 存取第 i 個元素 | **O(1)** | O(n)，要從頭走 |
+| 在已知位置插入 / 刪除 | O(n)，要搬動 | **O(1)**，只改指標 |
+| 尾端加入 | 攤銷 O(1) | O(1)（有 tail 指標時） |
+| 額外記憶體 | 少 | 每個節點多一個（或兩個）指標 |
+
+串列適合 **頻繁在中間插入、刪除，而且手上已經有節點位置** 的情況（例如 LRU 快取把節點移到最前面），以及需要「插入後其他元素的位址不變」的情況。
+
+`vector` 通常比較快，因為元素 **在記憶體中連續**，CPU 快取一次會載入相鄰的好幾個元素；串列的節點散落在記憶體各處，每走一步都可能 cache miss。另外每個節點都要 `new` 一次，配置的成本也很高。所以就算理論上串列的插入是 O(1)，n 不大時 `vector` 的 O(n) 搬動往往還是比較快。
 
 @@@ 05 | 堆疊、佇列、雙端佇列
 
@@ -459,6 +703,64 @@ int main() {
 
    每個元素最多進出 deque 各一次，O(n)。
 
+??? 預測輸出
+用堆疊計算 **後序表示法 (postfix)** 的運算式：
+
+```cpp
+#include <iostream>
+#include <sstream>
+#include <stack>
+#include <string>
+using namespace std;
+
+long long eval_postfix(const string& expr) {
+    stack<long long> st;
+    istringstream in(expr);
+    string tok;
+    while (in >> tok) {
+        if (tok == "+" || tok == "-" || tok == "*" || tok == "/") {
+            long long b = st.top(); st.pop();     // 注意：先取出的是右運算元
+            long long a = st.top(); st.pop();
+            if (tok == "+") st.push(a + b);
+            else if (tok == "-") st.push(a - b);
+            else if (tok == "*") st.push(a * b);
+            else st.push(a / b);
+        } else {
+            st.push(stoll(tok));
+        }
+    }
+    return st.top();
+}
+
+int main() {
+    cout << eval_postfix("3 4 + 2 * 7 -") << " "
+         << eval_postfix("5 1 2 + 4 * + 3 -") << " "
+         << eval_postfix("8 2 /") << "\n";
+    return 0;
+}
+```
+!!!
+```output
+7 14 4
+```
+
+- `3 4 + 2 * 7 -`：3、4 入堆疊；`+` 取出兩個算 7；2 入堆疊；`*` 算 14；7 入堆疊；`-` 算 14 − 7 = **7**。也就是 (3 + 4) × 2 − 7。
+- `5 1 2 + 4 * + 3 -` = 5 + (1 + 2) × 4 − 3 = **14**。
+- `8 2 /`：**先取出的是右運算元**（2），所以是 8 / 2 = 4，不是 2 / 8。減法和除法的順序弄反是最常見的錯誤。
+
+後序表示法不需要括號和優先順序，用一個堆疊由左到右掃一次就算完了，O(n)。
+
+??? 觀念
+只用兩個堆疊（`in` 和 `out`）實作一個佇列：
+
+1. `push` 和 `pop` 要怎麼做？
+2. 為什麼每個操作是 **攤銷 O(1)**，雖然有時候 `pop` 要搬 n 個元素？
+!!!
+1. - `push(x)`：直接放進 `in`。
+   - `pop()`：如果 `out` 是空的，就把 `in` 的元素 **全部** 一個一個彈出、放進 `out`（順序剛好反過來，最早放進去的到了 `out` 的頂端）；然後從 `out` 彈出。
+   - `front()` 同理。
+2. 每個元素在一生中 **最多被搬動一次**：放進 `in`、搬到 `out`、從 `out` 彈出，每一步都是 O(1)。n 個操作的總成本是 O(n)，平均每個 O(1)。雖然某一次 `pop` 可能要搬很多元素，但那些元素之後就不會再搬了。
+
 @@@ 06 | 雜湊表
 
 ??? 手動模擬
@@ -514,6 +816,42 @@ int bucket_of(long long key) { return (unsigned long long)key % M; }
 
    需要「依序走訪」、「找第一個 ≥ x 的 key」（`lower_bound`）、或要保證最壞情況時，選 `map`。
 2. 攻擊者知道雜湊函數（例如對整數 key 很簡單的 `k % m`），刻意構造一大堆 **落在同一個桶子** 的 key，讓每次操作都退化成 O(n)，n 個操作變成 O(n²)，程式超時（伺服器被拖垮）。解法是用把位元充分打亂、加上隨機種子的雜湊函數（例如 splitmix64 加上執行時決定的亂數）。
+
+??? 手動模擬
+雜湊表有 m = 7 格，`h(k) = k % 7`，用 **線性探測 (linear probing)**：位置被佔用就往下一格找（超過結尾繞回 0）。依序插入 `10, 3, 17, 24, 6`：
+
+1. 每個 key 最後放在哪一格？
+2. 查詢 31 時要檢查哪幾格才知道不存在？
+3. 如果把 17 刪除時直接把那格清空，查詢 24 會發生什麼事？要怎麼解決？
+!!!
+1. - 10 % 7 = 3 → 格 **3**
+   - 3 % 7 = 3，被佔 → 格 **4**
+   - 17 % 7 = 3，3、4 被佔 → 格 **5**
+   - 24 % 7 = 3，3、4、5 被佔 → 格 **6**
+   - 6 % 7 = 6，被佔 → 繞回格 **0**
+
+   結果：`[6, -, -, 10, 3, 17, 24]`
+2. 31 % 7 = 3，從格 3 開始：3、4、5、6、0 都有別的 key，**格 1 是空的** 才能確定不存在，共檢查 6 格。這就是線性探測的 **群聚 (clustering)** 問題：連續被佔用的區段越長，查詢越慢。
+3. 查詢 24 從格 3 開始往下找，走到格 5 發現是空的，就會 **誤以為 24 不存在**（其實它在格 6）。解法：刪除時不清空，而是放一個 **墓碑 (tombstone)** 標記「這裡曾經有東西」：查詢時遇到墓碑要繼續往下找，插入時可以重複使用墓碑的位置。
+
+??? 寫程式
+給一個整數陣列和目標值 target，找出兩個 **不同位置** 的元素，使它們的和等於 target，回傳兩個索引（保證有解）。要求平均 O(n)。
+!!!
+```cpp
+pair<int, int> two_sum(const vector<int>& a, int target) {
+    unordered_map<int, int> pos;               // 值 → 索引
+    for (int i = 0; i < (int)a.size(); i++) {
+        auto it = pos.find(target - a[i]);     // 之前有沒有出現過「需要的另一半」？
+        if (it != pos.end()) return {it->second, i};
+        pos[a[i]] = i;                          // 查完再放入，避免和自己配對
+    }
+    return {-1, -1};
+}
+```
+
+一邊走一邊把看過的值放進雜湊表，每個元素只要查一次「`target - a[i]` 出現過沒有」。每次查詢和插入平均 O(1)，總共 **平均 O(n)**。暴力法（兩層迴圈）是 O(n²)；先排序再用雙指標是 O(n log n)，但會打亂原本的索引。
+
+**先查詢、再插入** 很重要：例如 target = 6、a[i] = 3 時，如果先插入，就會找到自己。
 
 @@@ 07 | 堆積與優先佇列
 
@@ -642,6 +980,56 @@ for (int x : a) {
 
 為什麼用 **最大** 堆積：要能快速知道「這 k 個裡最大的是誰」，新的數比它小才替換掉它。
 
+??? 預測輸出
+用「由下往上建堆」把陣列變成 **最小堆積**：
+
+```cpp
+#include <iostream>
+#include <utility>
+#include <vector>
+using namespace std;
+
+void sift_down(vector<int>& h, int i) {
+    int n = h.size();
+    while (true) {
+        int l = 2 * i + 1, r = 2 * i + 2, m = i;
+        if (l < n && h[l] < h[m]) m = l;
+        if (r < n && h[r] < h[m]) m = r;
+        if (m == i) return;
+        swap(h[i], h[m]);
+        i = m;
+    }
+}
+
+int main() {
+    vector<int> h = {9, 4, 7, 1, 8, 2, 6};
+    for (int i = (int)h.size() / 2 - 1; i >= 0; i--) sift_down(h, i);
+    for (int x : h) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+```
+!!!
+```output
+1 4 2 9 8 7 6 
+```
+
+從最後一個非葉節點（索引 n/2 − 1 = 2）往前，對每個節點做下沉：
+- i = 2（值 7，小孩 2、6）：和 2 交換 → `9 4 2 1 8 7 6`
+- i = 1（值 4，小孩 1、8）：和 1 交換 → `9 1 2 4 8 7 6`（4 換到索引 3，沒有小孩，停）
+- i = 0（值 9，小孩 1、2）：和 1 交換 → `1 9 2 4 8 7 6`；9 到了索引 1，小孩 4、8，再和 4 交換 → `1 4 2 9 8 7 6`
+
+總成本是 O(n)，比一個一個插入的 O(n log n) 快。
+
+??? 觀念
+有 k 個已經排好序的串列，總共 N 個元素，要把它們合併成一個排好序的串列。
+
+1. 用堆積怎麼做？複雜度是多少？
+2. 為什麼比「全部放在一起再排序」好？
+!!!
+1. 把每個串列的 **第一個元素**（連同它屬於哪個串列、在第幾個位置）放進一個 **最小堆積**。每次取出堆頂（目前所有串列中最小的）放進結果，再把 **同一個串列的下一個元素** 放進堆積。堆積裡最多 k 個元素，每次操作 O(log k)，總共 **O(N log k)**。
+2. 全部放在一起再排序是 O(N log N)。k 通常遠小於 N（例如 k = 10 個檔案、N = 10⁹ 筆資料），log k 比 log N 小很多；而且堆積只需要 O(k) 的記憶體，可以 **一邊讀一邊輸出**，資料大到放不進記憶體時也能用（外部排序就是這樣做的）。
+
 @@@ 08 | 二元搜尋樹
 
 ??? 預測輸出
@@ -725,6 +1113,62 @@ int main() {
 !!!
 1. 每個新節點都比前面的大，全部接在右邊，樹 **退化成一條鏈**（像串列），高度是 n，搜尋、插入、刪除都變成 **O(n)**。
 2. 它們是 **平衡二元搜尋樹**（通常是紅黑樹），每次插入或刪除後會用 **旋轉** 調整形狀，保證樹高是 O(log n)，所以每個操作 **最壞也是 O(log n)**。
+
+??? 預測輸出
+`set` 是平衡二元搜尋樹，可以做「找第一個 ≥ x」這類查詢：
+
+```cpp
+#include <iostream>
+#include <iterator>
+#include <set>
+using namespace std;
+
+int main() {
+    set<int> s = {40, 10, 30, 20};
+    cout << *s.lower_bound(25) << " " << *s.upper_bound(30) << " "
+         << *prev(s.lower_bound(25)) << " " << (s.lower_bound(50) == s.end()) << "\n";
+    s.insert(20);
+    s.erase(10);
+    for (int x : s) cout << x << " ";
+    cout << "| " << s.size() << " " << *s.begin() << " " << *s.rbegin() << "\n";
+    return 0;
+}
+```
+!!!
+```output
+30 40 20 1
+20 30 40 | 3 20 40
+```
+
+- `lower_bound(25)`：第一個 **≥ 25** 的元素 → 30。
+- `upper_bound(30)`：第一個 **> 30** 的元素 → 40。
+- `prev(lower_bound(25))`：**比 25 小的最大元素**（floor）→ 20。使用前要確認 `lower_bound` 不是 `begin()`。
+- 找不到時回傳 `end()`，不能解參考。
+- `set` 不存重複的元素，再插入 20 沒有作用；走訪時依序由小到大；`rbegin()` 是最大值。
+
+這些查詢都是 O(log n)，在 BST 上沿著一條路徑往下走就能找到。
+
+??? 手動模擬
+1. 要把 1 ~ 7 插入一棵空的 BST，得到 **高度最小**（完全平衡）的樹，插入順序可以是什麼？畫出結果。
+2. 如果依序插入 `4, 2, 6, 1, 3, 5, 7` 之後刪除 **4**（用中序後繼取代），樹會變成什麼樣子？
+!!!
+1. 先插入 **中間** 的值當根，再遞迴地插入左右兩半的中間值，例如 **4, 2, 6, 1, 3, 5, 7**（同一層之間的順序可以換）：
+   ```
+         4
+       /   \
+      2     6
+     / \   / \
+    1   3 5   7
+   ```
+   高度是 2（3 層），是 7 個節點能達到的最小高度。依序插入 1 ~ 7 則會退化成一條鏈，高度 6。
+2. 4 有兩個小孩，中序後繼是右子樹的最小值 **5**。把根換成 5，再刪掉原本的 5（葉節點）：
+   ```
+         5
+       /   \
+      2     6
+     / \     \
+    1   3     7
+   ```
 
 @@@ 09 | 圖：BFS、DFS 與拓撲排序
 
@@ -832,6 +1276,51 @@ DAG
 
 **判斷有環**：如果最後輸出的點數少於 n，表示有些點的入度永遠降不到 0，它們在環上。
 
+??? 預測輸出
+和前面 BFS 題目相同的圖（邊依序是 1-2、1-3、2-4、3-4、4-5、5-6、3-6），改用 **遞迴 DFS** 從 1 出發：
+
+```cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+vector<vector<int>> adj;
+vector<bool> seen;
+
+void dfs(int u) {
+    seen[u] = true;
+    cout << u << " ";
+    for (int v : adj[u])
+        if (!seen[v]) dfs(v);
+}
+
+int main() {
+    int n = 6;
+    adj.assign(n + 1, {});
+    seen.assign(n + 1, false);
+    int edges[][2] = {{1, 2}, {1, 3}, {2, 4}, {3, 4}, {4, 5}, {5, 6}, {3, 6}};
+    for (auto& e : edges) { adj[e[0]].push_back(e[1]); adj[e[1]].push_back(e[0]); }
+    dfs(1);
+    cout << "\n";
+    return 0;
+}
+```
+!!!
+```output
+1 2 4 3 6 5 
+```
+
+DFS 沿著一條路一直走到底才回頭：1 → 2（1 的第一個鄰居）→ 4（2 的鄰居中第一個沒走過的）→ 3（4 的鄰居 2 走過了，下一個是 3）→ 6（3 的鄰居 1、4 都走過了）→ 5（6 的鄰居）。然後一路回溯，所有點都走過了。
+
+BFS 的順序是 `1 2 3 4 6 5`，一層一層往外；DFS 是 `1 2 4 3 6 5`，先往深處走。兩者都是 O(n + m)。
+
+??? 觀念
+1. 一個 R × C 的網格，`.` 是空地、`#` 是牆。怎麼算出有幾個「互相連通的空地區域」？複雜度是多少？
+2. 用遞迴 DFS 做這件事，在 1000 × 1000 全是空地的網格上可能會發生什麼事？怎麼避免？
+!!!
+1. 走訪每一個格子；遇到 **還沒拜訪過的空地**，區域數加 1，然後從它開始做 BFS 或 DFS（**flood fill**），把整個區域都標記成拜訪過。每個格子只會被拜訪一次、檢查 4 個鄰居，總共 **O(R × C)**。
+2. 整個網格是一個區域，遞迴深度可能達到 10⁶ 層，**堆疊溢位**。改用 BFS（佇列放在堆積上），或用自己的 `stack` 寫成迴圈版本的 DFS。
+
 @@@ 10 | 併查集
 
 ??? 預測輸出
@@ -926,6 +1415,60 @@ void unite(int a, int b) {
 }
 ```
 
+??? 預測輸出
+用 Kruskal 演算法求最小生成樹：
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <tuple>
+#include <vector>
+using namespace std;
+
+vector<int> parent;
+int find(int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); }
+
+int main() {
+    int n = 5;
+    vector<tuple<int, int, int>> edges = {   // (權重, u, v)
+        {1, 1, 2}, {3, 2, 3}, {4, 1, 3}, {2, 3, 4}, {5, 4, 5}, {7, 3, 5}, {6, 2, 5}};
+    sort(edges.begin(), edges.end());
+    parent.resize(n + 1);
+    iota(parent.begin(), parent.end(), 0);
+    int total = 0, used = 0;
+    for (auto [w, u, v] : edges) {
+        int a = find(u), b = find(v);
+        if (a == b) continue;               // 加了會形成環
+        parent[a] = b;
+        total += w;
+        used++;
+        cout << u << "-" << v << " ";
+    }
+    cout << "| " << total << " " << used << "\n";
+    return 0;
+}
+```
+!!!
+```output
+1-2 3-4 2-3 4-5 | 11 4
+```
+
+邊依權重由小到大考慮：
+- 權重 1（1-2）：不同組 → 選。
+- 權重 2（3-4）：不同組 → 選。
+- 權重 3（2-3）：{1,2} 和 {3,4} 不同組 → 選，合併成 {1,2,3,4}。
+- 權重 4（1-3）：已經在同一組，加了會形成環 → **跳過**。
+- 權重 5（4-5）：選。
+- 已經選了 n − 1 = 4 條邊，生成樹完成。總權重 1 + 2 + 3 + 5 = 11。
+
+??? 觀念
+1. 併查集可以很快地「合併」兩組，但不支援「把一條邊拿掉、讓一組分裂」。為什麼？
+2. 如果題目是「依序刪除圖中的邊，每次刪除後問有幾個連通分量」，怎麼還是能用併查集？
+!!!
+1. 併查集只記錄每個點的 **代表元素（根）**，合併時把兩棵樹接起來，而且路徑壓縮還會改變樹的形狀。它 **沒有記錄是哪一條邊造成了連通**，所以拿掉一條邊時，無法知道這兩個點是否還有別的路徑相連，也就無法正確地分裂。
+2. **倒過來做（離線處理）**：先讀完所有的刪除操作，從「所有要刪的邊都已經刪掉」的最終狀態開始，把操作 **反過來** 變成「依序加入邊」，用併查集計算每一步的連通分量數，最後把答案反轉輸出。「刪除」變成「加入」之後，併查集就能處理了。
+
 @@@ 11 | Corner Case、自己產生測資、對拍
 
 ??? 觀念
@@ -978,3 +1521,70 @@ anti-test 是針對某個 **錯誤或太慢的解法** 刻意構造的測資，�
 
 - **快排固定選第一個元素當 pivot**：給一個 **已經排好序**（或完全相反）的陣列，每次切分都極度不平均，退化成 O(n²)。
 - **沒有平衡的 BST**：依序插入 **1, 2, 3, …, n**，樹變成一條鏈，n = 10⁵ 時每次操作 O(n)，總共 O(n²)，而且遞迴實作還可能堆疊溢位。
+
+??? 寫程式
+你寫了一個二分搜尋 `int lower_bound_idx(const vector<int>& a, int x)`（回傳第一個 ≥ x 的索引，都比 x 小時回傳 n）。
+
+1. 迴圈裡應該維持什麼 **不變量**？可以用 `assert` 檢查什麼？
+2. 寫出完整的函式。
+!!!
+1. 用半開區間 `[lo, hi)`，不變量是：
+   - `a[0 .. lo-1]` 都 **< x**；
+   - `a[hi .. n-1]` 都 **≥ x**；
+   - `0 ≤ lo ≤ hi ≤ n`。
+
+   迴圈結束時 `lo == hi`，就是答案。可以 `assert(0 <= lo && lo <= hi && hi <= n)`，也可以檢查每一輪區間都有縮小（避免無窮迴圈）。
+2. 完整的函式：
+
+   ```cpp
+   int lower_bound_idx(const vector<int>& a, int x) {
+       int lo = 0, hi = a.size();              // 答案在 [lo, hi] 之間
+       while (lo < hi) {
+           int mid = lo + (hi - lo) / 2;       // 不會溢位；lo <= mid < hi
+           if (a[mid] < x) lo = mid + 1;       // a[0..mid] 都 < x
+           else hi = mid;                      // a[mid..] 都 >= x
+           assert(0 <= lo && lo <= hi && hi <= (int)a.size());
+       }
+       return lo;
+   }
+   ```
+   測試時要包含：空陣列、x 比全部小、x 比全部大、x 有重複、只有一個元素。也可以和 `std::lower_bound` 對拍。
+
+??? 寫程式
+你想對拍「最大連續子陣列和」的 O(n) 解法。寫出產生器 `gen.cpp` 的核心（用 seed 產生 n ≤ 8、值在 −10 ~ 10 的陣列）和暴力解 `brute.cpp` 的核心，並說明對拍的迴圈怎麼寫。
+!!!
+**產生器**（seed 從命令列傳入，同一個 seed 產生同一組測資）：
+
+```cpp
+int main(int argc, char* argv[]) {
+    mt19937 rng(atoi(argv[1]));
+    int n = rng() % 8 + 1;                              // 1 ~ 8
+    cout << n << "\n";
+    for (int i = 0; i < n; i++) cout << (int)(rng() % 21) - 10 << " ";
+    cout << "\n";
+}
+```
+
+**暴力解**（枚舉所有子陣列，O(n²)，簡單到不會錯）：
+
+```cpp
+long long best = LLONG_MIN;
+for (int l = 0; l < n; l++) {
+    long long s = 0;
+    for (int r = l; r < n; r++) { s += a[r]; best = max(best, s); }
+}
+cout << best << "\n";
+```
+
+**對拍迴圈**（bash）：
+
+```bash
+for i in $(seq 1 1000); do
+    ./gen $i > in.txt
+    ./mine < in.txt > out1.txt
+    ./brute < in.txt > out2.txt
+    if ! cmp -s out1.txt out2.txt; then echo "seed $i 不同"; cat in.txt; break; fi
+done
+```
+
+找到反例後，`in.txt` 就是一組很小的、可以手動追蹤的輸入；記下 seed，修好之後用同一個 seed 再跑一次確認。（本平台的 `python3 judge.py stress` 就是在做這件事。）

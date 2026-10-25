@@ -58,6 +58,11 @@ def main():
                 elif got.rstrip("\n") != outs[0].rstrip("\n"):
                     print(f"[{t}] {q['id']}: 輸出不符\n--- 答案\n{outs[0]}--- 實際\n{got}")
                     bad += 1
+        text = open(os.path.join(ROOT, "exams", t + ".md"), encoding="utf-8").read()
+        for no, line in enumerate(text.split("\n"), 1):
+            if re.match(r"^\s*([-*]|\d+\.)\s+```", line):
+                print(f"[{t}] 第 {no} 行：程式碼區塊不能和清單符號寫在同一行，請另起一行（否則會被當成題目分隔失效）")
+                bad += 1
         per = {}
         for q in ex["questions"]:
             per[q["chapter"]] = per.get(q["chapter"], 0) + 1
