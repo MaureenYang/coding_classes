@@ -11,6 +11,7 @@
 
 - 🧪 **測資產生器**：每題都有 corner case + 小 / 中 / 大隨機測資，可以換 seed 重新產生
 - ⚖️ **評測**：編譯你的 C / C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
+- 📝 **總複習考卷**：每條路線一份（共 216 題），涵蓋每一章；可以照章節或打亂出題、只考選定的章節，寫完在右邊對答案、自評，最後列出要重讀的章節。作答自動存到 `workspace/exams/`
 - 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出反例）
 - 🌐 **網頁版**：技術手冊風格的閱讀介面（章節目錄、本章段落、閱讀進度、深淺色、字級），寫 code、按一下就評測；左上角切換路線
 
@@ -117,6 +118,7 @@ cpp/problems/            C++ 深入題目（結構同 problems/）
 c/lessons/               C 語言教學
 c/problems/              C 語言題目（結構同 problems/，但檔案是 template.c / solution.c）
 cii/lessons/             《C 介面與實作》讀書筆記（parts.json 定義側欄的四個部分）
+exams/<路線>.md          總複習考卷（格式見 web/exam.py；python3 exams/check.py 會編譯執行所有「預測輸出」題核對答案）
 problems/<題目>/
     problem.md           題目敘述
     template.cpp         作答樣板

@@ -9,3 +9,4 @@ __pycache__/
 workspace/*.failed.in
 cpp/problems/*/tests/
 c/problems/*/tests/
+workspace/exams/

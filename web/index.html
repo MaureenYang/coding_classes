@@ -300,6 +300,78 @@ table.res tr.fail { cursor: pointer; } table.res tr.fail:hover { background: var
 .testlist .btn { margin-bottom: 6px; font-size: 13px; padding: 4px 10px; }
 .gen-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 
+/* ---------- 考卷 ---------- */
+.exam { padding-block: 40px 96px; padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); max-width: 1500px; margin: 0 auto; }
+.exam-head { max-width: 62rem; }
+.exam-bar {
+  position: sticky; top: 0; z-index: 6; background: var(--bg);
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 12px 0; margin-bottom: 18px; border-bottom: 1px solid var(--rule); font-family: var(--font-display);
+}
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 14px var(--font-display); background: var(--surface); color: var(--ink); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button.on { background: var(--accent); color: var(--surface); }
+.exam-stat { font: 500 13px var(--font-mono); color: var(--muted); }
+.chap-filter { position: relative; }
+.chap-filter summary { list-style: none; cursor: pointer; }
+.chap-filter summary::-webkit-details-marker { display: none; }
+.chap-panel {
+  position: absolute; z-index: 8; top: calc(100% + 6px); left: 0; width: min(420px, 86vw); max-height: 60vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+.chap-panel label { display: flex; gap: 8px; align-items: baseline; padding: 4px 2px; font-size: 14px; cursor: pointer; }
+.chap-panel label span { font: 500 12px var(--font-mono); color: var(--muted); min-width: 34px; }
+.chap-panel .row { display: flex; gap: 8px; margin-bottom: 6px; }
+.exam-ch { font: 700 21px/1.3 var(--font-display); margin: 40px 0 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.exam-ch .no { font: 600 13px var(--font-mono); color: var(--accent); }
+.exam-ch a { font: 500 13px var(--font-mono); }
+.q {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 1px solid var(--rule); border-left-width: 4px; border-radius: 10px; background: var(--surface);
+  margin: 0 0 18px; overflow: hidden;
+}
+.q.g-ok { border-left-color: var(--ok); }
+.q.g-bad { border-left-color: var(--bad); }
+.q-main { padding: 18px 22px 20px; min-width: 0; }
+.q-ans { padding: 18px 22px 20px; background: var(--bg); border-left: 1px solid var(--rule); min-width: 0; display: flex; flex-direction: column; }
+.q-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 500 12px var(--font-mono); color: var(--muted); margin-bottom: 10px; }
+.q-no { font: 700 14px var(--font-mono); color: var(--accent); }
+.tag { border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px; background: var(--bg); }
+.q .md p:last-child { margin-bottom: 8px; }
+.q .md pre code { font-size: 13px; }
+.q .code-wrap { margin: 12px 0 14px; }
+.ans-label { font: 600 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; display: block; }
+.q-ans .ans-label { margin-top: 0; }
+.q-input {
+  width: 100%; min-height: 96px; resize: vertical; display: block;
+  font: 14px/1.6 var(--font-mono); background: var(--code-bg); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; tab-size: 4;
+}
+.q-input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.q-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; font: 400 12px var(--font-mono); color: var(--muted); }
+.ans-hidden {
+  flex: 1; min-height: 140px; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; text-align: center;
+  color: var(--muted); font: 400 14px/1.6 var(--font-display); border: 1px dashed var(--rule); border-radius: 8px; padding: 18px;
+}
+.grade { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--rule); font: 500 14px var(--font-display); }
+.grade .btn.on-ok { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.grade .btn.on-bad { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.grade .hide-ans { margin-left: auto; font: 400 12px var(--font-mono); color: var(--muted); background: none; border: 0; cursor: pointer; text-decoration: underline; }
+.exam-summary { margin-top: 48px; padding-top: 24px; border-top: 2px solid var(--ink); }
+.exam-summary h2 { font: 700 23px var(--font-display); margin: 0 0 6px; }
+.exam-summary .score { font: 600 15px var(--font-mono); color: var(--muted); margin-bottom: 14px; }
+.exam-summary .st-ok, .exam-summary .st-bad { font-weight: 600; }
+@media (max-width: 1000px) {
+  .q { grid-template-columns: minmax(0, 1fr); }
+  .q-ans { border-left: 0; border-top: 1px solid var(--rule); }
+}
+@media (max-width: 860px) {
+  .exam { padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .q-main, .q-ans { padding: 14px 14px 16px; }
+  .exam-bar { position: static; }
+}
+
 /* ---------- 響應式 ---------- */
 @media (max-width: 1180px) {
   .reader { grid-template-columns: minmax(0, 1fr); }
@@ -545,6 +617,8 @@ const pidLabel = id => id.split("_")[0].toUpperCase();
 // 由網址判斷目前在哪一條路線：#cpp、#cpp/lesson/...、#problem/c07_... 是 C++ 深入；
 // #c、#c/lesson/...、#problem/cl03_... 是 C 語言；#cii、#cii/lesson/... 是讀本
 function trackOfHash(h) {
+  const ex = h.match(/^exam\/(\w+)/);
+  if (ex && TRACK[ex[1]]) return ex[1];
   if (h === "cii" || h.startsWith("cii/")) return "cii";
   if (h === "cpp" || h.startsWith("cpp/")) return "cpp";
   if (h === "c" || h.startsWith("c/")) return "c";
@@ -591,6 +665,9 @@ async function loadNav() {
   } else if (lessons.length) {
     html += `<div class="part"><div class="part-label"><span>教學 · Lessons</span><span>${lessons.length}</span></div>${lessons.map(link).join("")}</div>`;
   }
+  html = `<div class="part"><div class="part-label"><span>考卷 · Exam</span><span>自我檢測</span></div>
+    <a class="ch-link" href="#exam/${track}" data-k="exam/${track}"><span class="no">✎</span>
+    <span>總複習考卷<small>照章節或打亂出題 · 寫完自己對答案</small></span></a></div>` + html;
   if (problems.length) {
     const st = p => p.solved ? '<span class="st-ok">✔ 已通過</span>' : p.verdict ? `<span class="st-bad">✘ ${esc(p.verdict)}</span>`
                   : p.started ? "作答中" : "未開始";
@@ -919,9 +996,238 @@ async function loadTests() {
   };
 }
 
+/* ---------- 考卷 ---------- */
+let exam = null, examTimer = null;
+
+function seededRandom(seed) {                   // mulberry32：同一個 seed 每次打亂的順序都一樣
+  return () => {
+    seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const newSeed = () => Math.floor(Math.random() * 2147483647);
+
+function examSaveSoon() {
+  clearTimeout(examTimer);
+  examTimer = setTimeout(examFlush, 700);
+}
+async function examFlush() {
+  if (!examTimer || !exam) return;
+  clearTimeout(examTimer); examTimer = null;
+  try { await api("/api/exam_state", {track: exam.track, state: exam.state}); }
+  catch (e) { const s = $("#examSaved"); if (s) s.textContent = "儲存失敗：" + e.message; }
+}
+
+function lessonOf(no) {
+  return lessons.find(l => l.name.startsWith(no + "_") || l.name.startsWith(no + "-"));
+}
+function chapterOf(no) { return exam.chapters.find(c => c.no === no) || {no, title: ""}; }
+const chNo = no => String(no).replace(/^ch/, "");
+
+function examQuestions() {
+  const st = exam.state;
+  const sel = new Set(st.chapters || exam.chapters.map(c => c.no));
+  let qs = exam.questions.filter(q => sel.has(q.chapter));
+  if (st.mode === "shuffle") {
+    const r = seededRandom(st.seed);
+    qs = qs.slice();
+    for (let i = qs.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [qs[i], qs[j]] = [qs[j], qs[i]];
+    }
+  }
+  return qs;
+}
+
+async function showExam(t) {
+  const ex = await api("/api/exam?track=" + encodeURIComponent(t));
+  exam = Object.assign(ex, {track: t});
+  const st = exam.state;
+  st.answers = st.answers || {};
+  st.revealed = st.revealed || {};
+  st.grade = st.grade || {};
+  if (st.mode !== "shuffle") st.mode = "chapter";
+  if (!Number.isInteger(st.seed)) st.seed = newSeed();
+  if (Array.isArray(st.chapters)) st.chapters = st.chapters.filter(no => exam.chapters.some(c => c.no === no));
+  else delete st.chapters;
+  $("#topTitle").textContent = exam.title;
+  $("#readbar").style.width = "0";
+  renderExam();
+}
+
+function renderExam() {
+  const st = exam.state, main = $("#main");
+  const sel = new Set(st.chapters || exam.chapters.map(c => c.no));
+  main.innerHTML = `
+    <div class="exam">
+      <header class="chapter-head md exam-head" id="examHead"></header>
+      <div class="exam-bar">
+        <div class="seg" role="group" aria-label="出題順序">
+          <button data-mode="chapter" class="${st.mode === "chapter" ? "on" : ""}">照章節</button>
+          <button data-mode="shuffle" class="${st.mode === "shuffle" ? "on" : ""}">打亂</button>
+        </div>
+        <button class="btn" id="reshuffle">重新打亂</button>
+        <details class="chap-filter">
+          <summary class="btn">章節 ${sel.size}/${exam.chapters.length} ▾</summary>
+          <div class="chap-panel">
+            <div class="row"><button class="btn" id="chAll">全選</button><button class="btn" id="chNone">全不選</button></div>
+            ${exam.chapters.map(c => `<label><input type="checkbox" value="${esc(c.no)}" ${sel.has(c.no) ? "checked" : ""}>
+              <span>${esc(chNo(c.no))}</span>${esc(c.title)}</label>`).join("")}
+          </div>
+        </details>
+        <span class="exam-stat" id="examStat"></span>
+        <span style="flex:1"></span>
+        <button class="btn primary" id="revealAll">交卷：顯示全部答案</button>
+        <button class="btn" id="resetExam">重新作答</button>
+      </div>
+      <div id="qlist"></div>
+      <section class="exam-summary" id="examSummary"></section>
+    </div>`;
+
+  const {head} = buildDoc(`# ${exam.title}\n\n${exam.intro.split("\n").map(l => "> " + l).join("\n")}`,
+                          `Exam · ${TRACK[exam.track].name}`);
+  $("#examHead").replaceWith(head);
+  head.classList.add("exam-head");
+
+  const qs = examQuestions();
+  const list = $("#qlist");
+  let lastCh = null;
+  qs.forEach((q, i) => {
+    if (st.mode === "chapter" && q.chapter !== lastCh) {
+      lastCh = q.chapter;
+      const c = chapterOf(q.chapter), l = lessonOf(q.chapter);
+      list.insertAdjacentHTML("beforeend", `<h2 class="exam-ch"><span class="no">${esc(TRACK[exam.track].eyebrow)} ${esc(chNo(c.no))}</span>${esc(c.title)}
+        ${l ? `<a href="#${esc(lessonHash(l.name))}">讀這一章 →</a>` : ""}</h2>`);
+    }
+    list.appendChild(renderQuestion(q, i + 1));
+  });
+  if (!qs.length) list.innerHTML = `<p class="muted">沒有選任何章節。按上面的「章節」選擇要考的範圍。</p>`;
+
+  document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+    st.mode = b.dataset.mode; examSaveSoon(); renderExam();
+  });
+  $("#reshuffle").onclick = () => { st.mode = "shuffle"; st.seed = newSeed(); examSaveSoon(); renderExam(); };
+  const setChapters = nos => {
+    st.chapters = nos.length === exam.chapters.length ? undefined : nos;
+    if (!st.chapters) delete st.chapters;
+    examSaveSoon(); renderExam();
+    const d = $(".chap-filter"); if (d) d.open = true;
+  };
+  document.querySelectorAll(".chap-panel input").forEach(cb => cb.onchange = () =>
+    setChapters([...document.querySelectorAll(".chap-panel input:checked")].map(x => x.value)));
+  $("#chAll").onclick = () => setChapters(exam.chapters.map(c => c.no));
+  $("#chNone").onclick = () => setChapters([]);
+  $("#revealAll").onclick = () => {
+    const left = qs.filter(q => !(st.answers[q.id] || "").trim()).length;
+    if (left && !confirm(`還有 ${left} 題沒有作答，確定要交卷、顯示全部答案嗎？`)) return;
+    qs.forEach(q => st.revealed[q.id] = true);
+    examSaveSoon(); renderExam();
+    $("#examSummary").scrollIntoView({behavior: "smooth", block: "start"});
+  };
+  $("#resetExam").onclick = () => {
+    if (!confirm("確定要清除這份考卷所有的作答、答案顯示和自評嗎？")) return;
+    st.answers = {}; st.revealed = {}; st.grade = {}; st.seed = newSeed();
+    examSaveSoon(); renderExam();
+  };
+  updateExamStats();
+}
+
+function renderQuestion(q, n) {
+  const st = exam.state, c = chapterOf(q.chapter);
+  const sec = document.createElement("section");
+  sec.className = "q" + (st.grade[q.id] ? " g-" + st.grade[q.id] : "");
+  sec.id = "q-" + q.id;
+  sec.innerHTML = `
+    <div class="q-main">
+      <div class="q-meta"><span class="q-no">${n}.</span>
+        <span class="tag">${esc(TRACK[exam.track].eyebrow)} ${esc(chNo(c.no))} · ${esc(c.title)}</span>
+        <span class="tag">${esc(q.type)}</span></div>
+      <div class="md q-body"></div>
+      <label class="ans-label" for="in-${esc(q.id)}">你的答案</label>
+      <textarea class="q-input" id="in-${esc(q.id)}" spellcheck="false" placeholder="寫下你的答案，會自動儲存……"></textarea>
+      <div class="q-actions"><button class="btn reveal">${st.revealed[q.id] ? "隱藏答案" : "看答案"}</button><span class="saved-note"></span></div>
+    </div>
+    <aside class="q-ans" aria-live="polite"></aside>`;
+  const body = sec.querySelector(".q-body");
+  body.innerHTML = mdToHtml(q.q);
+  decorate(body);
+  const ta = sec.querySelector("textarea");
+  ta.value = st.answers[q.id] || "";
+  const fit = () => { ta.style.height = "auto"; ta.style.height = Math.max(96, ta.scrollHeight + 2) + "px"; };
+  ta.addEventListener("input", () => { st.answers[q.id] = ta.value; fit(); examSaveSoon(); updateExamStats(); });
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); ta.setRangeText("    ", ta.selectionStart, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); }
+  });
+  requestAnimationFrame(fit);
+  sec.querySelector(".reveal").onclick = () => {
+    st.revealed[q.id] = !st.revealed[q.id];
+    examSaveSoon(); fillAnswer(sec, q); updateExamStats();
+  };
+  fillAnswer(sec, q);
+  return sec;
+}
+
+function fillAnswer(sec, q) {
+  const st = exam.state, box = sec.querySelector(".q-ans");
+  sec.querySelector(".reveal").textContent = st.revealed[q.id] ? "隱藏答案" : "看答案";
+  if (!st.revealed[q.id]) {
+    box.innerHTML = `<div class="ans-hidden"><span>先把答案寫在左邊，<br>寫完再看參考答案。</span><button class="btn">看答案</button></div>`;
+    box.querySelector("button").onclick = () => sec.querySelector(".reveal").click();
+    return;
+  }
+  const g = st.grade[q.id];
+  box.innerHTML = `<span class="ans-label">參考答案</span><div class="md ans-body"></div>
+    <div class="grade"><span>自評：</span>
+      <button class="btn ${g === "ok" ? "on-ok" : ""}" data-g="ok">✔ 我答對了</button>
+      <button class="btn ${g === "bad" ? "on-bad" : ""}" data-g="bad">✘ 還不熟</button>
+      <button class="hide-ans">隱藏答案</button></div>`;
+  const body = box.querySelector(".ans-body");
+  body.innerHTML = mdToHtml(q.a);
+  decorate(body);
+  box.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    st.grade[q.id] = st.grade[q.id] === b.dataset.g ? undefined : b.dataset.g;
+    if (!st.grade[q.id]) delete st.grade[q.id];
+    sec.className = "q" + (st.grade[q.id] ? " g-" + st.grade[q.id] : "");
+    examSaveSoon(); fillAnswer(sec, q); updateExamStats();
+  });
+  box.querySelector(".hide-ans").onclick = () => sec.querySelector(".reveal").click();
+}
+
+function updateExamStats() {
+  const st = exam.state, qs = examQuestions();
+  const answered = qs.filter(q => (st.answers[q.id] || "").trim()).length;
+  const revealed = qs.filter(q => st.revealed[q.id]).length;
+  const ok = qs.filter(q => st.grade[q.id] === "ok").length;
+  const bad = qs.filter(q => st.grade[q.id] === "bad").length;
+  $("#examStat").innerHTML = `已作答 ${answered}/${qs.length} · 已對答案 ${revealed} · <span class="st-ok">✔ ${ok}</span> <span class="st-bad">✘ ${bad}</span>`;
+
+  const rows = [];
+  for (const c of exam.chapters) {
+    const cq = qs.filter(q => q.chapter === c.no);
+    if (!cq.length) continue;
+    const cok = cq.filter(q => st.grade[q.id] === "ok").length;
+    const cbad = cq.filter(q => st.grade[q.id] === "bad").length;
+    const l = lessonOf(c.no);
+    const advice = cbad ? (l ? `<a href="#${esc(lessonHash(l.name))}">重讀這一章</a>` : "重讀這一章")
+                 : cok === cq.length ? "✔ 掌握了" : "";
+    rows.push(`<tr><td>${esc(chNo(c.no))}</td><td>${esc(c.title)}</td><td>${cq.length}</td>
+      <td class="st-ok">${cok || ""}</td><td class="st-bad">${cbad || ""}</td><td>${cq.length - cok - cbad || ""}</td><td>${advice}</td></tr>`);
+  }
+  const graded = ok + bad;
+  $("#examSummary").innerHTML = `<h2>成績與複習建議</h2>
+    <div class="score">${graded ? `自評正確率 ${Math.round(ok / graded * 100)}%（${ok}/${graded}）` : "還沒有自評的題目"}；共 ${qs.length} 題，${qs.length - graded} 題還沒自評。</div>
+    <div class="md"><div class="table-wrap"><table>
+      <tr><th>章</th><th>主題</th><th>題數</th><th>✔</th><th>✘</th><th>未自評</th><th>建議</th></tr>${rows.join("")}
+    </table></div>
+    <p class="muted">每一題看完答案後按「✔ 我答對了」或「✘ 還不熟」。標成 ✘ 的章節，回去重讀那一章對應的段落，過幾天再「打亂」重考一次。</p></div>`;
+}
+
 /* ---------- 路由 ---------- */
 async function route() {
   if (saveTimer && current && editor) await save(false);  // 切換頁面前先存檔
+  await examFlush();
   editor = null;
   openRail(false);
   const h = decodeURIComponent(location.hash.slice(1));
@@ -932,6 +1238,7 @@ async function route() {
     if (h.startsWith("lesson/")) await showLesson(h.slice(7));
     else if (/^(cpp|c|cii)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii)\/lesson\//, ""));
     else if (h.startsWith("problem/")) await showProblem(h.slice(8));
+    else if (h.startsWith("exam/")) await showExam(h.slice(5));
     else showWelcome();
   } catch (e) {
     $("#main").innerHTML = `<div class="reader no-toc"><article class="md"><p>錯誤：${esc(e.message)}</p></article></div>`;

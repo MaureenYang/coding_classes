@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import judge
+from web.exam import load_exam, exam_path
 
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -63,6 +64,40 @@ def problem_list(track="ds"):
                     "verdict": p.get("verdict"),
                     "started": os.path.exists(judge.workspace_file(pid))})
     return out
+
+
+def exam_state_path(track):
+    return os.path.join(judge.WORKSPACE_DIR, "exams", f"{track}.json")
+
+
+def exam_detail(track):
+    """考卷題目加上已儲存的作答狀態（workspace/exams/<路線>.json）。"""
+    if not os.path.isfile(exam_path(track)):
+        raise ValueError("這條路線沒有考卷")
+    ex = load_exam(track)
+    path = exam_state_path(track)
+    state = {}
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            state = {}
+    ex["state"] = state if isinstance(state, dict) else {}
+    return ex
+
+
+def save_exam_state(track, state):
+    if not isinstance(state, dict):
+        raise ValueError("bad state")
+    data = json.dumps(state, ensure_ascii=False)
+    if len(data) > 2_000_000:
+        raise ValueError("作答內容太大")
+    os.makedirs(os.path.dirname(exam_state_path(track)), exist_ok=True)
+    tmp = exam_state_path(track) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(data)
+    os.replace(tmp, exam_state_path(track))
 
 
 def read(path):
@@ -158,6 +193,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(tests_detail(judge.resolve_problem(q["id"])))
             if url.path == "/api/lessons":
                 return self.send_json(lesson_list(track_of(q)))
+            if url.path == "/api/exam":
+                return self.send_json(exam_detail(track_of(q)))
             if url.path == "/api/parts":
                 return self.send_json(lesson_parts(track_of(q)))
             if url.path == "/api/lesson":
@@ -175,6 +212,9 @@ class Handler(BaseHTTPRequestHandler):
             if url.path == "/api/run":
                 return self.send_json(run_code(body.get("code", ""), body.get("input", ""), debug,
                                                body.get("lang") or "cpp"))
+            if url.path == "/api/exam_state":
+                save_exam_state(track_of(body), body.get("state"))
+                return self.send_json({"ok": True})
             pid = judge.resolve_problem(body.get("id", ""))
             if url.path == "/api/save":
                 save_code(pid, body.get("code", ""))
