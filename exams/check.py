@@ -13,7 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "web"))
 from exam import load_exam  # noqa: E402
 
-LANG = {"ds": "cpp", "cpp": "cpp", "c": "c", "cii": "c"}
+LANG = {"ds": "cpp", "cpp": "cpp", "c": "c", "cii": "c", "ce": "c"}
 
 
 def blocks(md, langs):
@@ -21,6 +21,12 @@ def blocks(md, langs):
 
 
 def run(code, lang, tmp):
+    if lang == "python":
+        src = os.path.join(tmp, "q.py")
+        with open(src, "w", encoding="utf-8") as f:
+            f.write(code)
+        r = subprocess.run([sys.executable, "-I", src], capture_output=True, text=True, timeout=30)
+        return (r.stdout, None) if r.returncode == 0 else (None, r.stderr)
     src = os.path.join(tmp, "q." + ("c" if lang == "c" else "cpp"))
     exe = os.path.join(tmp, "q")
     with open(src, "w", encoding="utf-8") as f:
@@ -43,14 +49,15 @@ def main():
         with tempfile.TemporaryDirectory() as tmp:
             for q in ex["questions"]:
                 outs = blocks(q["a"], {"output"})
-                progs = [b for b in blocks(q["q"], {"c", "cpp"}) if re.search(r"\bint\s+main\s*\(", b)]
+                progs = [(b, LANG[t]) for b in blocks(q["q"], {"c", "cpp"}) if re.search(r"\bint\s+main\s*\(", b)]
+                progs += [(b, "python") for b in blocks(q["q"], {"python"})]
                 if not outs:
                     continue
                 if len(progs) != 1:
                     print(f"[{t}] {q['id']}: 有 output 區塊，但題目裡的完整程式有 {len(progs)} 個")
                     bad += 1
                     continue
-                got, err = run(progs[0], LANG[t], tmp)
+                got, err = run(progs[0][0], progs[0][1], tmp)
                 checked += 1
                 if err is not None:
                     print(f"[{t}] {q['id']}: 編譯失敗\n{err}")

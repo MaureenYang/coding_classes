@@ -1,6 +1,6 @@
 # C++ 資料結構家教 🧑‍🏫
 
-一個在自己電腦上跑的 **C / C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成三條練習路線和一本讀本：
+一個在自己電腦上跑的 **C / C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成三條練習路線和兩本讀本：
 
 | 路線 | 內容 |
 |---|---|
@@ -8,10 +8,11 @@
 | 🔧 **C++ 深入** | `cpp/lessons/` 15 篇教學、`cpp/problems/` 14 題（運算式、敘述、函式、指標、RAII、類別、繼承與多型、ADT、模板、STL、字串 IO、例外、編譯模型、現代 C++） |
 | 🅲 **C 語言** | `c/lessons/` 13 篇教學、`c/problems/` 10 題（printf/scanf、指標、字串、malloc/free、struct、函式指標、檔案 IO、前置處理器、用 C 實作串列與雜湊表），用 `gcc -std=c11` 評測，多題會檢查記憶體洩漏 |
 | 📖 **C 介面與實作** | `cii/lessons/` 20 章讀書筆記：《C Interfaces and Implementations》（David R. Hanson），介面與實作、Atom、例外、記憶體管理、串列 / 關聯表 / 集合 / 序列 / 環 / 位元向量、字串、多精度算術、執行緒。只有閱讀，沒有評測題目 |
+| 🔐 **密碼工程** | `ce/lessons/` 23 章讀書筆記：《Cryptography Engineering》（Ferguson、Schneier、Kohno），區塊加密、加密模式、雜湊、MAC、安全通道、亂數、質數、Diffie-Hellman、RSA、密碼協定、金鑰協商、時鐘、金鑰伺服器、PKI、儲存秘密、標準與專利。只有閱讀，沒有評測題目 |
 
 - 🧪 **測資產生器**：每題都有 corner case + 小 / 中 / 大隨機測資，可以換 seed 重新產生
 - ⚖️ **評測**：編譯你的 C / C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
-- 📝 **總複習考卷**：每條路線一份（共 314 題），涵蓋每一章；可以照章節或打亂出題、只考選定的章節，寫完在右邊對答案、自評，最後列出要重讀的章節。作答自動存到 `workspace/exams/`
+- 📝 **總複習考卷**：每條路線一份（共 383 題），涵蓋每一章；可以照章節或打亂出題、只考選定的章節，寫完在右邊對答案、自評，最後列出要重讀的章節。作答自動存到 `workspace/exams/`
 - 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出反例）
 - 🌐 **網頁版**：技術手冊風格的閱讀介面（章節目錄、本章段落、閱讀進度、深淺色、字級），寫 code、按一下就評測；左上角切換路線
 
@@ -118,6 +119,7 @@ cpp/problems/            C++ 深入題目（結構同 problems/）
 c/lessons/               C 語言教學
 c/problems/              C 語言題目（結構同 problems/，但檔案是 template.c / solution.c）
 cii/lessons/             《C 介面與實作》讀書筆記（parts.json 定義側欄的四個部分）
+ce/lessons/              《Cryptography Engineering》讀書筆記（parts.json 定義側欄的五個部分）
 exams/<路線>.md          總複習考卷（格式見 web/exam.py；python3 exams/check.py 會編譯執行所有「預測輸出」題核對答案）
 problems/<題目>/
     problem.md           題目敘述

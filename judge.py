@@ -43,6 +43,9 @@ TRACKS = {
     # 讀本：只有教學（《C Interfaces and Implementations》讀書筆記），沒有評測題目
     "cii": {"name": "C 介面與實作", "lessons": os.path.join(ROOT, "cii", "lessons"),
             "problems": os.path.join(ROOT, "cii", "problems"), "lang": "c"},
+    # 讀本：《Cryptography Engineering》讀書筆記，同樣只有教學
+    "ce": {"name": "密碼工程", "lessons": os.path.join(ROOT, "ce", "lessons"),
+           "problems": os.path.join(ROOT, "ce", "problems"), "lang": "c"},
 }
 WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")

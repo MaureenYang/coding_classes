@@ -1,0 +1,14 @@
+{
+  "book": {
+    "kicker": "讀書筆記 · 中文",
+    "title": "Cryptography Engineering",
+    "by": "Ferguson · Schneier · Kohno · 2010"
+  },
+  "parts": [
+    {"label": "一、導論", "range": "Ch 1–2", "prefixes": ["ch01", "ch02"]},
+    {"label": "二、訊息安全", "range": "Ch 3–8", "prefixes": ["ch03", "ch04", "ch05", "ch06", "ch07", "ch08"]},
+    {"label": "三、金鑰協商", "range": "Ch 9–15", "prefixes": ["ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15"]},
+    {"label": "四、金鑰管理", "range": "Ch 16–21", "prefixes": ["ch16", "ch17", "ch18", "ch19", "ch20", "ch21"]},
+    {"label": "五、其他", "range": "Ch 22–23", "prefixes": ["ch22", "ch23"]}
+  ]
+}

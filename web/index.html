@@ -425,6 +425,7 @@ table.res tr.fail { cursor: pointer; } table.res tr.fail:hover { background: var
       <a href="#cpp" data-t="cpp"><small>C++</small>C++ 深入</a>
       <a href="#c" data-t="c"><small>C</small>C 語言</a>
       <a href="#cii" data-t="cii"><small>CII</small>C 介面與實作</a>
+      <a href="#ce" data-t="ce"><small>CE</small>密碼工程</a>
     </div>
     <div id="parts"></div>
     <div class="rail-foot">
@@ -610,6 +611,7 @@ const TRACK = {
   cpp: {name: "C++ 深入", kicker: "C++ 練習平台 · 路線二", eyebrow: "Lesson"},
   c:   {name: "C 語言", kicker: "C 練習平台 · 路線三", eyebrow: "Lesson"},
   cii: {name: "C 介面與實作", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
+  ce:  {name: "密碼工程", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
 };
 const lessonHash = name => (track === "ds" ? "lesson/" : track + "/lesson/") + name;
 const pidLabel = id => id.split("_")[0].toUpperCase();
@@ -620,6 +622,7 @@ function trackOfHash(h) {
   const ex = h.match(/^exam\/(\w+)/);
   if (ex && TRACK[ex[1]]) return ex[1];
   if (h === "cii" || h.startsWith("cii/")) return "cii";
+  if (h === "ce" || h.startsWith("ce/")) return "ce";
   if (h === "cpp" || h.startsWith("cpp/")) return "cpp";
   if (h === "c" || h.startsWith("c/")) return "c";
   const m = h.match(/^problem\/(.+)/);
@@ -632,7 +635,7 @@ function lessonInfo(l) {
   const no = (l.name.match(/^(?:ch)?(\d+[a-z]?)/) || [])[1] || "";
   let t = l.title.replace(/^第\s*\d+\s*章\s*/, "").replace(/^\d+[a-z]?\.\s*/, "");
   let sub = "";
-  const m = t.match(/^(.+?)（(.+)）$/);
+  const m = t.match(/^(.+)（([^（）]+)）$/);
   if (m) { t = m[1]; sub = m[2]; }
   return {no, title: t, sub};
 }
@@ -799,6 +802,18 @@ printf / scanf、指標、陣列與字串、malloc / free、struct、函式指�
 - 全書 20 章分成四部分：方法論與基礎設施、資料結構、字串、數值與並行。
 - 書中的程式碼用 **文學式程式設計** 寫成，像 ${"`"}〈atom.c〉≡${"`"} 這樣的區塊名稱會用橘色標出來。
 - 建議先讀完 **C 語言路線**（特別是第 05、07、08、11、12 課）再讀這本，會輕鬆很多。
+
+## 章節`,
+  ce: `# 密碼工程讀本
+
+> **讀書筆記** · 《Cryptography Engineering》· Ferguson、Schneier、Kohno · ${"`"}ce/lessons/${"`"}
+
+這本書講的不是密碼學的數學證明，而是 **怎麼把密碼學正確地用在真實的系統裡**：區塊加密、加密模式、雜湊、MAC、安全通道、亂數、Diffie-Hellman、RSA、金鑰協商、PKI、儲存秘密……以及每一步在實作上會出錯的地方。
+
+- 全書 23 章分成五部分：導論、訊息安全、金鑰協商、金鑰管理、其他。
+- 核心態度是 **保守**：安全系統的強度取決於最弱的一環，寧可多付一點效能，也不要省掉一層防護。
+- 筆記裡有 C 和 Python 的範例；讀過 C 語言路線（指標、記憶體）會比較容易理解實作議題的章節。
+- 左邊側欄最上面有 **總複習考卷**，可以檢查自己是不是真的讀懂了。
 
 ## 章節`,
 };
@@ -1236,7 +1251,7 @@ async function route() {
   highlightNav();
   try {
     if (h.startsWith("lesson/")) await showLesson(h.slice(7));
-    else if (/^(cpp|c|cii)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii)\/lesson\//, ""));
+    else if (/^(cpp|c|cii|ce)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii|ce)\/lesson\//, ""));
     else if (h.startsWith("problem/")) await showProblem(h.slice(8));
     else if (h.startsWith("exam/")) await showExam(h.slice(5));
     else showWelcome();
