@@ -426,6 +426,7 @@ table.res tr.fail { cursor: pointer; } table.res tr.fail:hover { background: var
       <a href="#c" data-t="c"><small>C</small>C 語言</a>
       <a href="#cii" data-t="cii"><small>CII</small>C 介面與實作</a>
       <a href="#ce" data-t="ce"><small>CE</small>密碼工程</a>
+      <a href="#aia" data-t="aia"><small>AIA</small>AI Agent</a>
     </div>
     <div id="parts"></div>
     <div class="rail-foot">
@@ -612,6 +613,7 @@ const TRACK = {
   c:   {name: "C 語言", kicker: "C 練習平台 · 路線三", eyebrow: "Lesson"},
   cii: {name: "C 介面與實作", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
   ce:  {name: "密碼工程", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
+  aia: {name: "AI Agent", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
 };
 const lessonHash = name => (track === "ds" ? "lesson/" : track + "/lesson/") + name;
 const pidLabel = id => id.split("_")[0].toUpperCase();
@@ -623,6 +625,7 @@ function trackOfHash(h) {
   if (ex && TRACK[ex[1]]) return ex[1];
   if (h === "cii" || h.startsWith("cii/")) return "cii";
   if (h === "ce" || h.startsWith("ce/")) return "ce";
+  if (h === "aia" || h.startsWith("aia/")) return "aia";
   if (h === "cpp" || h.startsWith("cpp/")) return "cpp";
   if (h === "c" || h.startsWith("c/")) return "c";
   const m = h.match(/^problem\/(.+)/);
@@ -813,6 +816,17 @@ printf / scanf、指標、陣列與字串、malloc / free、struct、函式指�
 - 全書 23 章分成五部分：導論、訊息安全、金鑰協商、金鑰管理、其他。
 - 核心態度是 **保守**：安全系統的強度取決於最弱的一環，寧可多付一點效能，也不要省掉一層防護。
 - 筆記裡有 C 和 Python 的範例；讀過 C 語言路線（指標、記憶體）會比較容易理解實作議題的章節。
+- 左邊側欄最上面有 **總複習考卷**，可以檢查自己是不是真的讀懂了。
+
+## 章節`,
+  aia: `# AI Agent 讀本
+
+> **讀書筆記** · 《深入理解 AI Agent》· 李博杰 · ${"`"}aia/lessons/${"`"}
+
+這本書從實戰經驗出發，講怎麼把大型語言模型做成真正能完成任務的 **Agent**：核心公式是 **Agent = LLM + 上下文 + 工具**（大腦 + 眼睛 + 手腳）。
+
+- 全書 10 章分成四個層次：**基礎**（第 1 章）、**建構**（第 2–6 章：上下文工程、記憶、工具、Coding Agent、互動）、**評估與進化**（第 7–9 章：評估、後訓練、持續進化）、**協作**（第 10 章：多 Agent）。
+- 作者的建議：時間有限就先讀第一、二章；關注訓練的讀者可以直接讀第八章，但要搭配第七章（評估是訓練的前提）。
 - 左邊側欄最上面有 **總複習考卷**，可以檢查自己是不是真的讀懂了。
 
 ## 章節`,
@@ -1251,7 +1265,7 @@ async function route() {
   highlightNav();
   try {
     if (h.startsWith("lesson/")) await showLesson(h.slice(7));
-    else if (/^(cpp|c|cii|ce)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii|ce)\/lesson\//, ""));
+    else if (/^(cpp|c|cii|ce|aia)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii|ce|aia)\/lesson\//, ""));
     else if (h.startsWith("problem/")) await showProblem(h.slice(8));
     else if (h.startsWith("exam/")) await showExam(h.slice(5));
     else showWelcome();

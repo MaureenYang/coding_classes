@@ -1,0 +1,13 @@
+{
+  "book": {
+    "kicker": "讀書筆記 · 中文",
+    "title": "深入理解 AI Agent",
+    "by": "李博杰"
+  },
+  "parts": [
+    {"label": "一、基礎", "range": "Ch 1", "prefixes": ["ch01"]},
+    {"label": "二、建構", "range": "Ch 2–6", "prefixes": ["ch02", "ch03", "ch04", "ch05", "ch06"]},
+    {"label": "三、評估與進化", "range": "Ch 7–9", "prefixes": ["ch07", "ch08", "ch09"]},
+    {"label": "四、協作", "range": "Ch 10", "prefixes": ["ch10"]}
+  ]
+}
