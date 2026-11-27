@@ -10,3 +10,4 @@ workspace/*.failed.in
 cpp/problems/*/tests/
 c/problems/*/tests/
 workspace/exams/
+mc/problems/*/tests/

@@ -49,6 +49,9 @@ TRACKS = {
     # 讀本：《深入理解 AI Agent》讀書筆記，同樣只有教學
     "aia": {"name": "AI Agent", "lessons": os.path.join(ROOT, "aia", "lessons"),
             "problems": os.path.join(ROOT, "aia", "problems"), "lang": "c"},
+    # 課程：《An Introduction to Mathematical Cryptography》，有教學也有 C 語言評測題目
+    "mc": {"name": "數學密碼學", "lessons": os.path.join(ROOT, "mc", "lessons"),
+           "problems": os.path.join(ROOT, "mc", "problems"), "lang": "c"},
 }
 WORKSPACE_DIR = os.path.join(ROOT, "workspace")
 BUILD_DIR = os.path.join(ROOT, ".build")
