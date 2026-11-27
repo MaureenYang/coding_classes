@@ -1,0 +1,17 @@
+{
+  "book": {
+    "kicker": "數學密碼學 · 中文",
+    "title": "An Introduction to Mathematical Cryptography",
+    "by": "Hoffstein · Pipher · Silverman"
+  },
+  "parts": [
+    {"label": "一、密碼學入門", "range": "Ch 1", "prefixes": ["01", "02", "03", "04", "05"]},
+    {"label": "二、離散對數與 Diffie–Hellman", "range": "Ch 2", "prefixes": ["06", "07", "08", "09"]},
+    {"label": "三、整數分解與 RSA", "range": "Ch 3", "prefixes": ["10", "11", "12", "13", "14"]},
+    {"label": "四、機率論與資訊理論", "range": "Ch 4", "prefixes": ["15", "16", "17"]},
+    {"label": "五、橢圓曲線", "range": "Ch 5", "prefixes": ["18", "19", "20"]},
+    {"label": "六、格與密碼學", "range": "Ch 6", "prefixes": ["21", "22", "23", "24"]},
+    {"label": "七、數位簽章", "range": "Ch 7", "prefixes": ["25"]},
+    {"label": "八、其他主題", "range": "Ch 8", "prefixes": ["26"]}
+  ]
+}
