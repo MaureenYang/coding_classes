@@ -1,6 +1,6 @@
 # C++ 資料結構家教 🧑‍🏫
 
-一個在自己電腦上跑的 **C / C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成三條練習路線和三本讀本：
+一個在自己電腦上跑的 **C / C++ 教學 + 練習題 + 自動測資 + 線上評測（Online Judge）** 平台，分成三條練習路線、三本讀本和一門數學密碼學課程：
 
 | 路線 | 內容 |
 |---|---|
@@ -10,10 +10,11 @@
 | 📖 **C 介面與實作** | `cii/lessons/` 20 章讀書筆記：《C Interfaces and Implementations》（David R. Hanson），介面與實作、Atom、例外、記憶體管理、串列 / 關聯表 / 集合 / 序列 / 環 / 位元向量、字串、多精度算術、執行緒。只有閱讀，沒有評測題目 |
 | 🔐 **密碼工程** | `ce/lessons/` 23 章讀書筆記：《Cryptography Engineering》（Ferguson、Schneier、Kohno），區塊加密、加密模式、雜湊、MAC、安全通道、亂數、質數、Diffie-Hellman、RSA、密碼協定、金鑰協商、時鐘、金鑰伺服器、PKI、儲存秘密、標準與專利。只有閱讀，沒有評測題目 |
 | 🤖 **AI Agent** | `aia/lessons/` 10 章讀書筆記：《深入理解 AI Agent》（李博杰），上下文工程、使用者記憶與知識庫、工具、Coding Agent、互動（非同步、語音、Computer Use、機器人）、評估、後訓練、持續進化、多 Agent 協作。只有閱讀，沒有評測題目 |
+| 🔢 **數學密碼學** | `mc/lessons/` 26 課、`mc/problems/` 17 題：《An Introduction to Mathematical Cryptography》（Hoffstein、Pipher、Silverman）全書 8 章——同餘與有限體、離散對數與 Diffie–Hellman、RSA 與整數分解、機率與資訊理論、橢圓曲線與配對、格與 NTRU、數位簽章、雜湊 / 零知識 / 秘密分享 / 量子計算 / AES。教學附實際執行過的 Python 範例，題目用 C 實作書中的演算法 |
 
 - 🧪 **測資產生器**：每題都有 corner case + 小 / 中 / 大隨機測資，可以換 seed 重新產生
 - ⚖️ **評測**：編譯你的 C / C++、跑測資、回報 AC / WA / TLE / RE / CE，顯示第一個不同的地方
-- 📝 **總複習考卷**：每條路線一份（共 456 題），涵蓋每一章；可以照章節或打亂出題、只考選定的章節，寫完在右邊對答案、自評，最後列出要重讀的章節。作答自動存到 `workspace/exams/`
+- 📝 **總複習考卷**：每條路線一份（共 535 題），涵蓋每一章；可以照章節或打亂出題、只考選定的章節，寫完在右邊對答案、自評，最後列出要重讀的章節。作答自動存到 `workspace/exams/`
 - 🔍 **除錯工具**：`--debug`（AddressSanitizer + UBSan）、**對拍**（自動找出反例）
 - 🌐 **網頁版**：技術手冊風格的閱讀介面（章節目錄、本章段落、閱讀進度、深淺色、字級），寫 code、按一下就評測；左上角切換路線
 
@@ -109,6 +110,28 @@ python3 judge.py test cl3 --debug  # C 題目強烈建議用 --debug 抓記憶�
 | CL09 | 函式指標與指令表 | 函式指標、回呼、查表分派 | ★★★ |
 | CL10 | 字串雜湊表 | 分離鏈結法、rehash、字串複製 | ★★★★ |
 
+### 🔢 數學密碼學
+
+| 編號 | 題目 | 主題 | 難度 |
+|---|---|---|---|
+| MC01 | 凱撒與替換密碼破解 | 替換密碼、頻率分析 | ★★ |
+| MC02 | 擴展歐幾里得與模反元素 | 擴展歐幾里得演算法 | ★★ |
+| MC03 | 快速冪 | 平方乘法、128 位元乘法 | ★★ |
+| MC04 | 元素的階與原根 | 元素的階、原根 | ★★★ |
+| MC05 | Diffie–Hellman 與 ElGamal | Diffie–Hellman 金鑰交換、ElGamal 加密 | ★★ |
+| MC06 | 嬰兒步巨人步 | 離散對數、Shanks 嬰兒步巨人步演算法 | ★★★ |
+| MC07 | 中國剩餘定理 | 中國剩餘定理 | ★★ |
+| MC08 | Pohlig–Hellman | Pohlig–Hellman 演算法、離散對數 | ★★★★ |
+| MC09 | RSA 加解密 | RSA 公鑰密碼、RSA 簽章 | ★★ |
+| MC10 | Miller–Rabin 質數檢定 | Miller–Rabin 質數檢定 | ★★★ |
+| MC11 | 整數分解 | Pollard ρ、Miller–Rabin | ★★★★ |
+| MC12 | 破解 Vigenère 密碼 | Vigenère 密碼、重合指數、卡方統計量 | ★★★ |
+| MC13 | 橢圓曲線運算 | 橢圓曲線加法、倍點運算 | ★★★ |
+| MC14 | 二維格基約化 | Gauss 格基約化、最短向量 | ★★★ |
+| MC15 | NTRU 加解密 | NTRU 公鑰密碼、卷積多項式環 | ★★★ |
+| MC16 | DSA 簽章與驗證 | 數位簽章、DSA | ★★★ |
+| MC17 | Shamir 秘密分享 | 門檻秘密分享、Lagrange 內插 | ★★★ |
+
 ## 目錄結構
 
 ```
@@ -122,6 +145,8 @@ c/problems/              C 語言題目（結構同 problems/，但檔案是 tem
 cii/lessons/             《C 介面與實作》讀書筆記（parts.json 定義側欄的四個部分）
 ce/lessons/              《Cryptography Engineering》讀書筆記（parts.json 定義側欄的五個部分）
 aia/lessons/             《深入理解 AI Agent》讀書筆記（parts.json 定義側欄的四個部分）
+mc/lessons/              數學密碼學課程（parts.json 對應全書 8 章）
+mc/problems/             數學密碼學題目（C 語言，結構同 c/problems/；_mrlib.py、_english.txt 是產生測資共用的工具）
 exams/<路線>.md          總複習考卷（格式見 web/exam.py；python3 exams/check.py 會編譯執行所有「預測輸出」題核對答案）
 problems/<題目>/
     problem.md           題目敘述

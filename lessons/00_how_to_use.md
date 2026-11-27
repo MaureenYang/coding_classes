@@ -1,6 +1,6 @@
 # 00. 如何使用這個平台
 
-這是一個在自己電腦上跑的 **C / C++ 家教 + 線上評測（Online Judge）**，有三條練習路線和三本讀本：
+這是一個在自己電腦上跑的 **C / C++ 家教 + 線上評測（Online Judge）**，有三條練習路線、三本讀本和一門數學密碼學課程：
 
 - 📚 **資料結構**（這裡）：`lessons/` 和 `problems/`
 - 🔧 **C++ 深入**：`cpp/lessons/` 和 `cpp/problems/`，專門把 C++ 語言本身學扎實（指標、記憶體、類別、繼承、模板、例外……）。網頁版左上角可以切換，從 `cpp/lessons/00_roadmap.md` 開始。
@@ -8,6 +8,7 @@
 - 📖 **C 介面與實作**：`cii/lessons/`，《C Interfaces and Implementations》20 章的中文讀書筆記，示範怎麼用 C 寫出可重複使用的模組。只有閱讀，建議學完 C 語言路線再讀。
 - 🔐 **密碼工程**：`ce/lessons/`，《Cryptography Engineering》23 章的中文讀書筆記，講怎麼把密碼學正確地用在真實的系統裡（加密、認證、金鑰協商、PKI、實作議題）。只有閱讀。
 - 🤖 **AI Agent**：`aia/lessons/`，《深入理解 AI Agent》10 章的中文讀書筆記，講怎麼建構、評估、訓練和改進 LLM Agent（上下文、記憶、工具、Harness、多 Agent）。只有閱讀。
+- 🔢 **數學密碼學**：`mc/lessons/` 和 `mc/problems/`，《An Introduction to Mathematical Cryptography》的完整課程：26 課教學（附實際執行過的 Python 範例和習題詳解）加上 17 題 C 語言實作題（快速冪、嬰兒步巨人步、Pohlig–Hellman、Miller–Rabin、Pollard ρ、橢圓曲線、格基約化、NTRU、DSA……）。命令列用 `python3 judge.py test mc6`。
 
 每條路線的側欄最上面都有一份 **總複習考卷**：題目涵蓋每一章（預測輸出、找錯、寫程式、觀念），可以照章節或打亂出題。先自己把答案寫在左邊，再按「看答案」在右邊對照，並自評「答對了 / 還不熟」，最後會列出需要重讀的章節。
 

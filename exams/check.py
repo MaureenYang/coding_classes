@@ -13,7 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "web"))
 from exam import load_exam  # noqa: E402
 
-LANG = {"ds": "cpp", "cpp": "cpp", "c": "c", "cii": "c", "ce": "c", "aia": "c"}
+LANG = {"ds": "cpp", "cpp": "cpp", "c": "c", "cii": "c", "ce": "c", "aia": "c", "mc": "c"}
 
 
 def blocks(md, langs):

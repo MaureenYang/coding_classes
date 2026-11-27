@@ -427,6 +427,7 @@ table.res tr.fail { cursor: pointer; } table.res tr.fail:hover { background: var
       <a href="#cii" data-t="cii"><small>CII</small>C 介面與實作</a>
       <a href="#ce" data-t="ce"><small>CE</small>密碼工程</a>
       <a href="#aia" data-t="aia"><small>AIA</small>AI Agent</a>
+      <a href="#mc" data-t="mc"><small>MC</small>數學密碼學</a>
     </div>
     <div id="parts"></div>
     <div class="rail-foot">
@@ -614,6 +615,7 @@ const TRACK = {
   cii: {name: "C 介面與實作", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
   ce:  {name: "密碼工程", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
   aia: {name: "AI Agent", kicker: "讀書筆記 · 中文", eyebrow: "Chapter"},
+  mc:  {name: "數學密碼學", kicker: "數學密碼學 · 課程", eyebrow: "Lesson"},
 };
 const lessonHash = name => (track === "ds" ? "lesson/" : track + "/lesson/") + name;
 const pidLabel = id => id.split("_")[0].toUpperCase();
@@ -626,10 +628,12 @@ function trackOfHash(h) {
   if (h === "cii" || h.startsWith("cii/")) return "cii";
   if (h === "ce" || h.startsWith("ce/")) return "ce";
   if (h === "aia" || h.startsWith("aia/")) return "aia";
+  if (h === "mc" || h.startsWith("mc/")) return "mc";
   if (h === "cpp" || h.startsWith("cpp/")) return "cpp";
   if (h === "c" || h.startsWith("c/")) return "c";
   const m = h.match(/^problem\/(.+)/);
   if (m && /^cl\d/.test(m[1])) return "c";
+  if (m && /^mc\d/.test(m[1])) return "mc";
   return m && /^c\d/.test(m[1]) ? "cpp" : "ds";
 }
 
@@ -830,6 +834,19 @@ printf / scanf、指標、陣列與字串、malloc / free、struct、函式指�
 - 左邊側欄最上面有 **總複習考卷**，可以檢查自己是不是真的讀懂了。
 
 ## 章節`,
+  mc: `# 數學密碼學
+
+> **課程** · 《An Introduction to Mathematical Cryptography》· Hoffstein、Pipher、Silverman · ${"`"}mc/lessons/${"`"} 與 ${"`"}mc/problems/${"`"}
+
+從凱撒密碼一路到格密碼：整除與同餘、有限體、離散對數與 Diffie–Hellman、RSA 與整數分解、機率與資訊理論、橢圓曲線與配對、格與 NTRU、數位簽章，最後是雜湊、零知識證明、秘密分享、量子計算和 AES。
+
+- 26 課對應全書 8 章。每一課的 Python 範例都實際跑過，輸出就寫在程式下面；課末有 **習題** 和 **詳解**。
+- 左邊的 **題目**（MC01–MC17）用 **C** 實作書中的演算法：快速冪、嬰兒步巨人步、Pohlig–Hellman、Miller–Rabin、Pollard ρ、橢圓曲線、Gauss 格基約化、NTRU、DSA……評測方式和 C 語言路線一樣。
+- 密碼學的數字常常超過 64 位元：題目裡的乘法都要用 ${"`"}unsigned __int128${"`"}。
+- 命令列也能用：${"`"}python3 judge.py test mc6${"`"}（第 6 題）。
+- 左邊側欄最上面有 **總複習考卷**。
+
+## 教學`,
 };
 
 function showWelcome() {
@@ -1265,7 +1282,7 @@ async function route() {
   highlightNav();
   try {
     if (h.startsWith("lesson/")) await showLesson(h.slice(7));
-    else if (/^(cpp|c|cii|ce|aia)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii|ce|aia)\/lesson\//, ""));
+    else if (/^(cpp|c|cii|ce|aia|mc)\/lesson\//.test(h)) await showLesson(h.replace(/^(cpp|c|cii|ce|aia|mc)\/lesson\//, ""));
     else if (h.startsWith("problem/")) await showProblem(h.slice(8));
     else if (h.startsWith("exam/")) await showExam(h.slice(5));
     else showWelcome();
